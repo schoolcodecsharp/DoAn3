@@ -29,3 +29,61 @@ Hỗ trợ quản lý thông tin nhân viên và lịch làm việc
 Quản lý khách hàng và lịch đặt dịch vụ
 
 Hỗ trợ quản trị viên theo dõi và quản lý hoạt động của tiệm
+
+3. Đối tượng sử dụng hệ thống
+
+Hệ thống có hai đối tượng sử dụng chính:
+
+1. Khách hàng (User)
+
+Khách hàng có thể:
+
+Đăng ký tài khoản và đăng nhập
+
+Xem danh sách các dịch vụ cắt tóc
+
+Xem thông tin và giá của từng dịch vụ
+
+Lựa chọn nhân viên thực hiện
+
+Đặt lịch cắt tóc theo thời gian mong muốn
+
+Xem lại lịch đã đặt
+
+Đánh giá dịch vụ sau khi sử dụng
+
+2. Quản trị viên (Admin)
+
+Quản trị viên có thể:
+
+Quản lý thông tin dịch vụ (thêm, sửa, xóa)
+
+Quản lý danh mục dịch vụ
+
+Quản lý thông tin nhân viên
+
+Quản lý lịch làm việc của nhân viên
+
+Quản lý lịch đặt của khách hàng
+
+Quản lý thông tin khách hàng
+
+Xem báo cáo và thống kê hoạt động của tiệm
+
+4. Phạm vi của hệ thống
+
+Hệ thống website quản lý dịch vụ cắt tóc tập trung vào các chức năng chính sau:
+
+Quản lý người dùng và phân quyền
+
+Quản lý dịch vụ cắt tóc
+
+Quản lý nhân viên
+
+Quản lý lịch làm việc
+
+Đặt lịch dịch vụ
+
+Quản lý thanh toán và đánh giá dịch vụ
+
+Hệ thống giúp tự động hóa việc quản lý tiệm cắt tóc, nâng cao hiệu quả làm việc và cải thiện trải nghiệm của khách hàng.
