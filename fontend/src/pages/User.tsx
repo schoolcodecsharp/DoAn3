@@ -76,8 +76,8 @@ function User() {
     return { date: dateStr, time: timeStr };
   };
 
-  const selectedServiceData = services.find(s => s.maDichVu === selectedService);
-  const selectedBarberData = staff.find(s => s.maNhanVien === selectedBarber);
+  const selectedServiceData = services.find((s: any) => (s.maDichVu) === selectedService);
+  const selectedBarberData = staff.find((s: any) => (s.maNhanVien) === selectedBarber);
 
   // Generate next 5 days
   const getNextDays = () => {
@@ -105,7 +105,7 @@ function User() {
             </div>
             <button className="icon-btn">🔔</button>
             <button className="icon-btn">❓</button>
-            <div className="user-avatar-header">{currentUser?.hoTen.charAt(0) || 'U'}</div>
+            <div className="user-avatar-header">{currentUser?.hoTen?.charAt(0) || 'U'}</div>
           </div>
         </div>
       </header>
@@ -410,8 +410,8 @@ function User() {
               </div>
               <div className="profile-card-main">
                 <div className="profile-avatar-section">
-                  <div className="profile-avatar-large">{currentUser.hoTen.charAt(0)}</div>
-                  <h3 className="profile-name">{currentUser.hoTen}</h3>
+                  <div className="profile-avatar-large">{currentUser?.hoTen?.charAt(0) || 'U'}</div>
+                  <h3 className="profile-name">{currentUser?.hoTen || 'Khách hàng'}</h3>
                   <p className="profile-rank">
                     Hạng: {['Thường', 'Bạc', 'Vàng', 'Kim cương'][currentUser.hangThanhVien]}
                   </p>
