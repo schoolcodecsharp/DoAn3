@@ -1,8 +1,23 @@
 // ============================================================
-// API SERVICE - Kết nối Backend API thay cho localStorage
+// API SERVICE - Kết nối Backend API
 // ============================================================
 
 const API_BASE = 'http://localhost:5000/api';
+
+// Convert PascalCase keys from C# backend to camelCase for frontend
+const toCamelCase = (str: string): string =>
+  str.charAt(0).toLowerCase() + str.slice(1);
+
+const normalizeKeys = (obj: any): any => {
+  if (Array.isArray(obj)) return obj.map(normalizeKeys);
+  if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+    return Object.keys(obj).reduce((acc: any, key: string) => {
+      acc[toCamelCase(key)] = normalizeKeys(obj[key]);
+      return acc;
+    }, {});
+  }
+  return obj;
+};
 
 // Generic fetch wrapper
 const fetchApi = async (url: string, options?: RequestInit) => {
@@ -13,7 +28,7 @@ const fetchApi = async (url: string, options?: RequestInit) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Lỗi server');
-    return data;
+    return normalizeKeys(data);
   } catch (err: any) {
     console.error('API Error:', err.message);
     throw err;
