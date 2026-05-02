@@ -18,20 +18,11 @@ function Home() {
   }, []);
 
   const branchesByCity = branches.reduce((acc: any, branch: any) => {
-    const city = branch.TinhThanh || branch.tinhThanh;
+    const city = branch.tinhThanh || 'Khác';
     if (!acc[city]) acc[city] = [];
     acc[city].push(branch);
     return acc;
   }, {} as Record<string, any[]>);
-
-  const serviceImages = [
-    '/images/haircut.png',
-    '/images/massage.png',
-    '/images/haircut.png',
-    '/images/massage.png',
-    '/images/haircut.png',
-    '/images/massage.png',
-  ];
 
   const serviceEmojis = ['✂️', '💆', '🎨', '💇', '🧴', '💈'];
 
@@ -75,7 +66,10 @@ function Home() {
           </div>
         </div>
         <div className="hero-image">
-          <img src="/images/hero.png" alt="30Shine Premium Barbershop" />
+          <div className="hero-image-placeholder">
+            <span className="hero-emoji">💈</span>
+            <p>Premium Barbershop</p>
+          </div>
           <div className="hero-badge">
             <div className="badge-text">
               <strong>10+</strong>
@@ -118,19 +112,21 @@ function Home() {
         </div>
         <div className="services-grid">
           {services.slice(0, 6).map((service: any, index: number) => (
-            <div key={service.MaDichVu || service.maDichVu} className="service-card">
+            <div key={service.maDichVu} className="service-card">
               <span className="service-number">0{index + 1}</span>
               <div className="service-card-image">
-                <img src={serviceImages[index % serviceImages.length]} alt={service.TenDichVu || service.tenDichVu} />
+                <div className="service-image-placeholder">
+                  <span>{serviceEmojis[index % serviceEmojis.length]}</span>
+                </div>
               </div>
               <div className="service-card-content">
-                <h3>{service.TenDichVu || service.tenDichVu}</h3>
-                <p className="service-price">{(service.Gia || service.gia || 0).toLocaleString()}đ</p>
+                <h3>{service.tenDichVu}</h3>
+                <p className="service-price">{(service.gia || 0).toLocaleString()}đ</p>
                 <p className="service-description">
-                  {service.MoTa || service.moTa || 'Dịch vụ chất lượng cao tại 30Shine'}
+                  {service.moTa || 'Dịch vụ chất lượng cao tại 30Shine'}
                 </p>
                 <p className="service-description">
-                  {serviceEmojis[index % serviceEmojis.length]} {service.ThoiGianPhut || service.thoiGianPhut} phút • 🎁 +{service.DiemThuong || service.diemThuong} điểm
+                  {serviceEmojis[index % serviceEmojis.length]} {service.thoiGianPhut} phút • 🎁 +{service.diemThuong} điểm
                 </p>
                 <Link to="/login" className="service-link">
                   Đặt lịch ngay →
@@ -155,12 +151,12 @@ function Home() {
             <div key={city} className="city-card">
               <h3>{city}</h3>
               <p className="salon-count">{cityBranches.length} chi nhánh</p>
-              {cityBranches.map(branch => (
-                <div key={branch.MaChiNhanh || branch.maChiNhanh} className="salon-item">
-                  <p>{branch.TenChiNhanh || branch.tenChiNhanh}</p>
-                  <span>{branch.DiaChi || branch.diaChi}</span>
+              {cityBranches.map((branch: any) => (
+                <div key={branch.maChiNhanh} className="salon-item">
+                  <p>{branch.tenChiNhanh}</p>
+                  <span>{branch.diaChi}</span>
                   <br />
-                  <span>📞 {branch.SoDienThoai || branch.soDienThoai} • 🕐 {branch.GioMoCua || branch.gioMoCua} - {branch.GioDongCua || branch.gioDongCua}</span>
+                  <span>📞 {branch.soDienThoai} • 🕐 {branch.gioMoCua} - {branch.gioDongCua}</span>
                 </div>
               ))}
             </div>
