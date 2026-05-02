@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import '../styles/Staff.css';
 import { nhanVienApi, datLichApi, dichVuApi, hoaDonApi, danhGiaApi } from '../utils/api';
 
+// Helper to get service names from chi tiet
+const getServiceNamesFromApt = (apt: any) => {
+  return apt.ghiChu || 'Dịch vụ cắt tóc';
+};
+
 function Staff() {
   const [activeTab, setActiveTab] = useState('schedule');
   const [staffInfo, setStaffInfo] = useState<any>(null);
@@ -10,15 +15,18 @@ function Staff() {
   const [completedServices, setCompletedServices] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [searchAppointment, setSearchAppointment] = useState('');
+  const [services, setServices] = useState<any[]>([]);
   const [monthlyStats, setMonthlyStats] = useState({ soKhach: 0, doanhThu: '0đ', danhGiaTB: 0, soGioLam: 0 });
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
+      const allServices = await dichVuApi.getAll();
+      setServices(allServices);
       const staffData = await nhanVienApi.getById('NV001');
       setStaffInfo(staffData);
-      const maNV = staffData.MaNhanVien || staffData.maNhanVien || 'NV001';
+      const maNV = staffData.maNhanVien || 'NV001';
       const staffApts = await datLichApi.getAll({ nhanVien: maNV });
       setAppointments(staffApts);
       const staffReviews = await danhGiaApi.getAll({ nhanVien: maNV });
@@ -65,8 +73,8 @@ function Staff() {
           <div className="staff-badge">
             <span className="badge-icon">👨‍💼</span>
             <div>
-              <span className="staff-name">{staffInfo.HoTen || staffInfo.hoTen}</span>
-              <span className="staff-position">{staffInfo.ChucVu || staffInfo.chucVu}</span>
+              <span className="staff-name">{staffInfo.hoTen || 'Nhân viên'}</span>
+              <span className="staff-position">{staffInfo.chucVu || 'Stylist'}</span>
             </div>
           </div>
           <Link to="/" className="btn-logout">Đăng xuất</Link>
@@ -123,7 +131,7 @@ function Staff() {
                   <p>Không có lịch hẹn nào</p>
                 ) : (
                   appointments.map((apt) => {
-                    const serviceNames = getServiceNames(apt.maDatLich);
+                    const serviceNames = getServiceNamesFromApt(apt);
                     return (
                       <div key={apt.maDatLich} className="appointment-card">
                         <div className="appointment-header">
@@ -131,7 +139,7 @@ function Staff() {
                             <h3>Khách hàng</h3>
                             <p className="appointment-code">{apt.maDatLich} • {apt.soDienThoai}</p>
                           </div>
-                          <span className={`status-badge ${apt.trangThai.toLowerCase()}`}>
+                          <span className={`status-badge ${(apt.trangThai || '').toLowerCase()}`}>
                             {getStatusText(apt.trangThai)}
                           </span>
                         </div>
@@ -300,10 +308,10 @@ function Staff() {
               <div className="profile-card">
                 <div className="profile-avatar">
                   <div className="avatar-circle">
-                    {staffInfo.hoTen.charAt(0)}
+                    {(staffInfo.hoTen || 'S').charAt(0)}
                   </div>
-                  <h3>{staffInfo.hoTen}</h3>
-                  <p className="profile-position">{staffInfo.chucVu}</p>
+                  <h3>{staffInfo.hoTen || 'Nhân viên'}</h3>
+                  <p className="profile-position">{staffInfo.chucVu || 'Stylist'}</p>
                 </div>
 
                 <div className="profile-details">
