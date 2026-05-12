@@ -13,4 +13,5 @@ public class NhanVienDto
     public decimal? LuongCoBan { get; set; }
     public string? MatKhau { get; set; }
     public bool? TrangThai { get; set; }
+    public string? HinhAnh { get; set; }
 }
