@@ -11,4 +11,5 @@ public class ChiNhanhDto
     public string? GioMoCua { get; set; }
     public string? GioDongCua { get; set; }
     public bool? TrangThai { get; set; }
+    public string? HinhAnh { get; set; }
 }
