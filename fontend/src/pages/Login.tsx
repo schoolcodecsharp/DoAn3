@@ -88,7 +88,7 @@ function Login() {
 
     // Validate email
     if (!isValidEmail(formData.email)) {
-      setError('Vui lòng nhập địa chỉ email hợp lệ');
+      setError('Vui lòng nhập địa chỉ email hợp lệ (có chứa @)');
       setLoading(false);
       return;
     }
@@ -97,6 +97,17 @@ function Login() {
       const result = await authApi.login(formData.email, formData.password, formData.accountType);
       if (result.success) {
         localStorage.setItem('currentUser', JSON.stringify(result.user));
+        
+        // Kiểm tra xem có pendingBooking không
+        const pendingBooking = localStorage.getItem('pendingBooking');
+        if (pendingBooking) {
+          const booking = JSON.parse(pendingBooking);
+          localStorage.removeItem('pendingBooking');
+          navigate('/user', { state: { preSelectedService: booking.serviceId } });
+          return;
+        }
+        
+        // Nếu không có pendingBooking, điều hướng theo role
         const role = result.user.vaiTro || result.user.VaiTro;
         if (role === 'admin') navigate('/admin');
         else if (role === 'staff') navigate('/staff');

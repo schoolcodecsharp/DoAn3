@@ -54,10 +54,13 @@ function ServiceDetail() {
     .slice(0, 4);
 
   const handleBookNow = () => {
-    if (currentUser) {
-      navigate('/user', { state: { preSelectedService: id } });
-    } else {
+    if (!currentUser) {
+      // Lưu thông tin dịch vụ vào localStorage để sau khi đăng nhập có thể quay lại
+      localStorage.setItem('pendingBooking', JSON.stringify({ serviceId: id }));
+      alert('Vui lòng đăng nhập để đặt lịch!');
       navigate('/login');
+    } else {
+      navigate('/user', { state: { preSelectedService: id } });
     }
   };
 

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import '../styles/User.css';
 import { datLichApi, dichVuApi, chiNhanhApi, nhanVienApi, hoaDonApi } from '../utils/api';
 
 function User() {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('booking');
   const [currentUser] = useState<any>(() => {
     const stored = localStorage.getItem('currentUser');
@@ -22,6 +23,14 @@ function User() {
   const [searchInvoice, setSearchInvoice] = useState('');
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    // Nếu có dịch vụ được chọn từ ServiceDetail, tự động set
+    if (location.state?.preSelectedService) {
+      setSelectedService(location.state.preSelectedService);
+      setActiveTab('booking');
+    }
+  }, [location.state]);
 
   const loadData = async () => {
     try {
