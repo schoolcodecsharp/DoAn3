@@ -26,8 +26,15 @@ const fetchApi = async (url: string, options?: RequestInit) => {
       headers: { 'Content-Type': 'application/json' },
       ...options,
     });
-    const data = await res.json();
+    const text = await res.text();
+    if (!text) return [];
+    let data;
+    try { data = JSON.parse(text); } catch { return []; }
     if (!res.ok) throw new Error(data.message || 'Lỗi server');
+    // Unwrap { success, data } pattern used by some endpoints
+    if (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data) {
+      return normalizeKeys(data.data);
+    }
     return normalizeKeys(data);
   } catch (err: any) {
     console.error('API Error:', err.message);
@@ -39,10 +46,12 @@ const fetchApi = async (url: string, options?: RequestInit) => {
 // AUTH API
 // ============================================================
 export const authApi = {
-  login: (phone: string, password: string) =>
-    fetchApi('/auth/login', { method: 'POST', body: JSON.stringify({ phone, password }) }),
+  login: (email: string, password: string, accountType: string = 'user') =>
+    fetchApi('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, accountType }) }),
   register: (data: any) =>
     fetchApi('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  googleLogin: (idToken: string) =>
+    fetchApi('/auth/google', { method: 'POST', body: JSON.stringify({ idToken }) }),
 };
 
 // ============================================================
@@ -153,6 +162,8 @@ export const hoaDonApi = {
 export const khuyenMaiApi = {
   getAll: (search?: string) =>
     fetchApi(`/khuyenmai${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+  getByCode: (code: string) =>
+    fetchApi(`/khuyenmai/${code}`),
   create: (data: any) =>
     fetchApi('/khuyenmai', { method: 'POST', body: JSON.stringify(data) }),
   update: (code: string, data: any) =>
@@ -182,4 +193,14 @@ export const danhGiaApi = {
   },
   create: (data: any) =>
     fetchApi('/danhgia', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ============================================================
+// DASHBOARD API
+// ============================================================
+export const dashboardApi = {
+  getStats: () => fetchApi('/dashboard/stats'),
+  getRevenueChart: (months: number = 6) => fetchApi(`/dashboard/revenue-chart?months=${months}`),
+  getTopServices: (top: number = 5) => fetchApi(`/dashboard/top-services?top=${top}`),
+  getRecentBookings: (limit: number = 10) => fetchApi(`/dashboard/recent-bookings?limit=${limit}`),
 };
