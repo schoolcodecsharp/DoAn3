@@ -11,4 +11,5 @@ public class DichVuDto
     public int? ThoiGianPhut { get; set; }
     public int? DiemThuong { get; set; }
     public bool? TrangThai { get; set; }
+    public string? HinhAnh { get; set; }
 }
