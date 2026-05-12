@@ -74,4 +74,11 @@ D:\DoAn3\backend\obj\Debug\net9.0\refint\backend.dll
 D:\DoAn3\backend\obj\Debug\net9.0\backend.pdb
 D:\DoAn3\backend\obj\Debug\net9.0\backend.genruntimeconfig.cache
 D:\DoAn3\backend\obj\Debug\net9.0\ref\backend.dll
+D:\DoAn3\backend\bin\Debug\net9.0\Google.Apis.dll
+D:\DoAn3\backend\bin\Debug\net9.0\Google.Apis.Auth.dll
+D:\DoAn3\backend\bin\Debug\net9.0\Google.Apis.Core.dll
+D:\DoAn3\backend\bin\Debug\net9.0\Newtonsoft.Json.dll
+D:\DoAn3\backend\bin\Debug\net9.0\System.CodeDom.dll
+D:\DoAn3\backend\bin\Debug\net9.0\System.Management.dll
+D:\DoAn3\backend\bin\Debug\net9.0\runtimes\win\lib\net7.0\System.Management.dll
 D:\DoAn3\backend\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
