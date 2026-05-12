@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/Admin.css';
-import { dichVuApi, nhanVienApi, chiNhanhApi, khachHangApi, datLichApi, khuyenMaiApi } from '../utils/api';
+import { dichVuApi, nhanVienApi, chiNhanhApi, khachHangApi, datLichApi, khuyenMaiApi, dashboardApi } from '../utils/api';
+import AdminDashboard from '../components/AdminDashboard';
 
 function Admin() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -10,12 +11,17 @@ function Admin() {
   const [currentEntity, setCurrentEntity] = useState<string>('');
 
   // State cho dữ liệu từ localStorage
-  const [services, setServices] = useState<DichVu[]>([]);
-  const [staff, setStaff] = useState<NhanVien[]>([]);
-  const [customers, setCustomers] = useState<KhachHang[]>([]);
-  const [branches, setBranches] = useState<ChiNhanh[]>([]);
-  const [bookings, setBookings] = useState<DatLich[]>([]);
-  const [promotions, setPromotions] = useState<KhuyenMai[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [promotions, setPromotions] = useState<any[]>([]);
+  
+  // Dashboard stats
+  const [dashStats, setDashStats] = useState<any>(null);
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [topServices, setTopServices] = useState<any[]>([]);
 
   // Form data
   const [formData, setFormData] = useState<any>({});
@@ -34,14 +40,23 @@ function Admin() {
   }, []);
 
   const loadData = async () => {
-    try {
-      const [sv, st, cus, br, bk, pr] = await Promise.all([
-        dichVuApi.getAll(), nhanVienApi.getAll(), khachHangApi.getAll(),
-        chiNhanhApi.getAll(), datLichApi.getAll({}), khuyenMaiApi.getAll()
-      ]);
-      setServices(sv); setStaff(st); setCustomers(cus);
-      setBranches(br); setBookings(bk); setPromotions(pr);
-    } catch (err) { console.error('Load data error:', err); }
+    const safeCall = async (fn: () => Promise<any>, fallback: any = []) => {
+      try { return await fn(); } catch { return fallback; }
+    };
+    const [sv, st, cus, br, bk, pr, stats, revenue, topSv] = await Promise.all([
+      safeCall(() => dichVuApi.getAll()),
+      safeCall(() => nhanVienApi.getAll()),
+      safeCall(() => khachHangApi.getAll()),
+      safeCall(() => chiNhanhApi.getAll()),
+      safeCall(() => datLichApi.getAll({})),
+      safeCall(() => khuyenMaiApi.getAll()),
+      safeCall(() => dashboardApi.getStats()),
+      safeCall(() => dashboardApi.getRevenueChart(6)),
+      safeCall(() => dashboardApi.getTopServices(5)),
+    ]);
+    setServices(sv); setStaff(st); setCustomers(cus);
+    setBranches(br); setBookings(bk); setPromotions(pr);
+    setDashStats(stats); setRevenueData(revenue); setTopServices(topSv);
   };
 
   const openModal = (type: 'add' | 'edit', entity: string, data?: any) => {
@@ -93,6 +108,35 @@ function Admin() {
         alert('Cập nhật chi nhánh thành công!');
       }
       loadData();
+    } else if (currentEntity === 'promotion') {
+      if (modalType === 'add') {
+        await khuyenMaiApi.create({
+          maCode: formData.maCode,
+          tenKhuyenMai: formData.tenKhuyenMai,
+          loaiGiam: formData.loaiGiam || 'PhanTram',
+          giaTriGiam: Number(formData.giaTriGiam),
+          giaTriToiDa: formData.giaTriToiDa ? Number(formData.giaTriToiDa) : null,
+          donHangToiThieu: formData.donHangToiThieu ? Number(formData.donHangToiThieu) : 0,
+          soLanToiDa: formData.soLanToiDa ? Number(formData.soLanToiDa) : 100,
+          ngayBatDau: formData.ngayBatDau,
+          ngayKetThuc: formData.ngayKetThuc,
+        });
+        alert('Thêm khuyến mãi thành công!');
+      } else {
+        await khuyenMaiApi.update(formData.maCode, {
+          tenKhuyenMai: formData.tenKhuyenMai,
+          loaiGiam: formData.loaiGiam || 'PhanTram',
+          giaTriGiam: Number(formData.giaTriGiam),
+          giaTriToiDa: formData.giaTriToiDa ? Number(formData.giaTriToiDa) : null,
+          donHangToiThieu: formData.donHangToiThieu ? Number(formData.donHangToiThieu) : 0,
+          soLanToiDa: formData.soLanToiDa ? Number(formData.soLanToiDa) : 100,
+          ngayBatDau: formData.ngayBatDau,
+          ngayKetThuc: formData.ngayKetThuc,
+          trangThai: formData.trangThai === 'true' || formData.trangThai === true,
+        });
+        alert('Cập nhật khuyến mãi thành công!');
+      }
+      loadData();
     }
     } catch (err: any) { alert('Lỗi: ' + err.message); }
     closeModal();
@@ -104,6 +148,7 @@ function Admin() {
       if (entity === 'service') { await dichVuApi.delete(id); alert('Xóa dịch vụ thành công!'); }
       else if (entity === 'staff') { await nhanVienApi.delete(id); alert('Xóa nhân viên thành công!'); }
       else if (entity === 'branch') { await chiNhanhApi.delete(id); alert('Xóa chi nhánh thành công!'); }
+      else if (entity === 'promotion') { await khuyenMaiApi.delete(id); alert('Xóa khuyến mãi thành công!'); }
       loadData();
     } catch (err: any) { alert('Lỗi: ' + err.message); }
   };
@@ -195,7 +240,7 @@ function Admin() {
             )}
 
             {activeTab === 'services' && (
-              <div className="services-section" style={{background: 'white', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
+              <div className="services-section" style={{background: 'black', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'service')}>+ Thêm dịch vụ mới</button>
                   <input type="text" placeholder="🔍 Tìm kiếm dịch vụ..." value={searchService} onChange={e => handleSearch('service', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
@@ -233,7 +278,7 @@ function Admin() {
             )}
 
             {activeTab === 'staff' && (
-              <div className="staff-section" style={{background: 'white', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
+              <div className="staff-section" style={{background: 'black', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'staff')}>+ Thêm nhân viên</button>
                   <input type="text" placeholder="🔍 Tìm kiếm nhân viên..." value={searchStaff} onChange={e => handleSearch('staff', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
@@ -276,7 +321,7 @@ function Admin() {
             )}
 
             {activeTab === 'customers' && (
-              <div className="customers-section" style={{background: 'white', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
+              <div className="customers-section" style={{background: 'black', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
                 <div style={{display:'flex',justifyContent:'flex-end',marginBottom:'1rem'}}>
                   <input type="text" placeholder="🔍 Tìm kiếm khách hàng..." value={searchCustomer} onChange={e => handleSearch('customer', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
@@ -316,7 +361,7 @@ function Admin() {
             )}
 
             {activeTab === 'branches' && (
-              <div className="branches-section" style={{background: 'white', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
+              <div className="branches-section" style={{background: 'black', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'branch')}>+ Thêm chi nhánh</button>
                   <input type="text" placeholder="🔍 Tìm kiếm chi nhánh..." value={searchBranch} onChange={e => handleSearch('branch', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
@@ -412,7 +457,7 @@ function Admin() {
             {activeTab === 'promotions' && (
               <div style={{background: '#242426', padding: '2rem', borderRadius: '8px', border: '1px solid #3f3f46'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
-                  <h3 style={{color: '#D4AF37', fontSize: '1.1rem', margin:0}}>🎁 Mã khuyến mãi ({promotions.length})</h3>
+                  <button className="btn-add" onClick={() => openModal('add', 'promotion')}>+ Thêm khuyến mãi</button>
                   <input type="text" placeholder="🔍 Tìm khuyến mãi..." value={searchPromo} onChange={e => handleSearch('promo', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #555',background:'#1a1a1c',color:'white',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
                 <table className="data-table">
@@ -426,6 +471,7 @@ function Admin() {
                       <th>Đã dùng</th>
                       <th>Thời hạn</th>
                       <th>Trạng thái</th>
+                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -434,11 +480,26 @@ function Admin() {
                         <td style={{color: '#D4AF37', fontWeight: 700}}>{promo.maCode}</td>
                         <td>{promo.tenKhuyenMai}</td>
                         <td>{promo.loaiGiam === 'PhanTram' ? 'Phần trăm' : 'Số tiền'}</td>
-                        <td style={{color: '#22c55e', fontWeight: 600}}>{promo.loaiGiam === 'PhanTram' ? `${promo.giaTriGiam}%` : `${promo.giaTriGiam.toLocaleString()}đ`}</td>
-                        <td>{promo.donHangToiThieu.toLocaleString()}đ</td>
+                        <td style={{color: '#22c55e', fontWeight: 600}}>{promo.loaiGiam === 'PhanTram' ? `${promo.giaTriGiam}%` : `${(promo.giaTriGiam || 0).toLocaleString()}đ`}</td>
+                        <td>{(promo.donHangToiThieu || 0).toLocaleString()}đ</td>
                         <td>{promo.soLanDung}/{promo.soLanToiDa}</td>
-                        <td>{promo.ngayBatDau} → {promo.ngayKetThuc}</td>
+                        <td>{promo.ngayBatDau ? new Date(promo.ngayBatDau).toLocaleDateString('vi-VN') : ''} → {promo.ngayKetThuc ? new Date(promo.ngayKetThuc).toLocaleDateString('vi-VN') : ''}</td>
                         <td><span className={`badge ${promo.trangThai ? 'active' : ''}`}>{promo.trangThai ? 'Hoạt động' : 'Hết hạn'}</span></td>
+                        <td>
+                          <button className="btn-action" onClick={() => openModal('edit', 'promotion', {
+                            maCode: promo.maCode,
+                            tenKhuyenMai: promo.tenKhuyenMai,
+                            loaiGiam: promo.loaiGiam,
+                            giaTriGiam: promo.giaTriGiam,
+                            giaTriToiDa: promo.giaTriToiDa,
+                            donHangToiThieu: promo.donHangToiThieu,
+                            soLanToiDa: promo.soLanToiDa,
+                            ngayBatDau: promo.ngayBatDau ? promo.ngayBatDau.split('T')[0] : '',
+                            ngayKetThuc: promo.ngayKetThuc ? promo.ngayKetThuc.split('T')[0] : '',
+                            trangThai: promo.trangThai,
+                          })}>Sửa</button>
+                          <button className="btn-action danger" onClick={() => handleDelete('promotion', promo.maCode)}>Xóa</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -457,7 +518,8 @@ function Admin() {
               <h3>{modalType === 'add' ? 'Thêm mới' : 'Chỉnh sửa'} {
                 currentEntity === 'service' ? 'Dịch vụ' :
                 currentEntity === 'staff' ? 'Nhân viên' :
-                currentEntity === 'branch' ? 'Chi nhánh' : ''
+                currentEntity === 'branch' ? 'Chi nhánh' :
+                currentEntity === 'promotion' ? 'Khuyến mãi' : ''
               }</h3>
               <button className="btn-close" onClick={closeModal}>×</button>
             </div>
@@ -569,6 +631,69 @@ function Admin() {
                       <option value="Hoạt động">Hoạt động</option>
                       <option value="Tạm đóng">Tạm đóng</option>
                     </select>
+                  </div>
+                </>
+              )}
+
+              {currentEntity === 'promotion' && (
+                <>
+                  {modalType === 'add' && (
+                    <div className="form-group">
+                      <label>Mã Code *</label>
+                      <input type="text" name="maCode" value={formData.maCode || ''} onChange={handleInputChange} placeholder="VD: SALE10, SUMMER2025" required />
+                    </div>
+                  )}
+                  <div className="form-group">
+                    <label>Tên khuyến mãi *</label>
+                    <input type="text" name="tenKhuyenMai" value={formData.tenKhuyenMai || ''} onChange={handleInputChange} required />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Loại giảm *</label>
+                      <select name="loaiGiam" value={formData.loaiGiam || 'PhanTram'} onChange={handleInputChange} required>
+                        <option value="PhanTram">Phần trăm (%)</option>
+                        <option value="SoTien">Số tiền (VNĐ)</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Giá trị giảm *</label>
+                      <input type="number" name="giaTriGiam" value={formData.giaTriGiam || ''} onChange={handleInputChange} required />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Giá trị tối đa (VNĐ)</label>
+                      <input type="number" name="giaTriToiDa" value={formData.giaTriToiDa || ''} onChange={handleInputChange} />
+                    </div>
+                    <div className="form-group">
+                      <label>Đơn hàng tối thiểu (VNĐ)</label>
+                      <input type="number" name="donHangToiThieu" value={formData.donHangToiThieu || ''} onChange={handleInputChange} />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Số lần tối đa</label>
+                      <input type="number" name="soLanToiDa" value={formData.soLanToiDa || 100} onChange={handleInputChange} />
+                    </div>
+                    {modalType === 'edit' && (
+                      <div className="form-group">
+                        <label>Trạng thái</label>
+                        <select name="trangThai" value={String(formData.trangThai ?? true)} onChange={handleInputChange}>
+                          <option value="true">Hoạt động</option>
+                          <option value="false">Hết hạn</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Ngày bắt đầu *</label>
+                      <input type="date" name="ngayBatDau" value={formData.ngayBatDau || ''} onChange={handleInputChange} required />
+                    </div>
+                    <div className="form-group">
+                      <label>Ngày kết thúc *</label>
+                      <input type="date" name="ngayKetThuc" value={formData.ngayKetThuc || ''} onChange={handleInputChange} required />
+                    </div>
                   </div>
                 </>
               )}
