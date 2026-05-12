@@ -2,8 +2,9 @@ namespace backend.Models.DTOs;
 
 public class LoginRequest
 {
-    public string Phone { get; set; } = "";
+    public string Email { get; set; } = "";
     public string Password { get; set; } = "";
+    public string AccountType { get; set; } = "user"; // "user" hoặc "staff"
 }
 
 public class RegisterRequest
@@ -15,3 +16,9 @@ public class RegisterRequest
     public string? Email { get; set; }
     public string MatKhau { get; set; } = "";
 }
+
+public class GoogleLoginRequest
+{
+    public string IdToken { get; set; } = "";
+}
+
