@@ -3,9 +3,22 @@ import { Link } from 'react-router-dom';
 import '../styles/Home.css';
 import { dichVuApi, chiNhanhApi } from '../utils/api';
 
+import hero1 from '../assets/hero1.png';
+import hero2 from '../assets/hero2.png';
+import hero3 from '../assets/hero3.png';
+import hero4 from '../assets/hero4.png';
+
+const heroImages = [
+  { src: hero1, alt: 'Không gian Premium Barbershop' },
+  { src: hero2, alt: 'Stylist chuyên nghiệp đang phục vụ' },
+  { src: hero3, alt: 'Dụng cụ và sản phẩm cao cấp' },
+  { src: hero4, alt: 'Phong cách hiện đại cho phái mạnh' },
+];
+
 function Home() {
   const [services, setServices] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -17,6 +30,14 @@ function Home() {
     load();
   }, []);
 
+  // Auto-slide every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const branchesByCity = branches.reduce((acc: any, branch: any) => {
     const city = branch.tinhThanh || 'Khác';
     if (!acc[city]) acc[city] = [];
@@ -24,7 +45,15 @@ function Home() {
     return acc;
   }, {} as Record<string, any[]>);
 
-  const serviceEmojis = ['✂️', '💆', '🎨', '💇', '🧴', '💈'];
+  // Fallback images for services that don't have images from DB
+  const fallbackServiceImages = [
+    'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=400&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400&h=300&fit=crop',
+  ];
 
   return (
     <div className="home-container">
@@ -44,7 +73,7 @@ function Home() {
         </div>
       </header>
 
-      {/* Hero Banner */}
+      {/* Hero Banner with Image Slideshow */}
       <section className="hero-banner">
         <div className="hero-content">
           <p className="hero-label">Premium Hair Salon</p>
@@ -60,15 +89,35 @@ function Home() {
             <Link to="/login" className="btn-booking-large">
               Đặt Lịch Ngay →
             </Link>
+            <Link to="/checkout" className="btn-secondary" style={{marginLeft: '0.5rem'}}>
+              💳 Thanh Toán
+            </Link>
             <a href="#services" className="btn-secondary">
               Xem Dịch Vụ
             </a>
           </div>
         </div>
         <div className="hero-image">
-          <div className="hero-image-placeholder">
-            <span className="hero-emoji">💈</span>
-            <p>Premium Barbershop</p>
+          <div className="hero-slideshow">
+            {heroImages.map((img, index) => (
+              <img
+                key={index}
+                src={img.src}
+                alt={img.alt}
+                className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
+              />
+            ))}
+            <div className="hero-slide-overlay"></div>
+          </div>
+          <div className="hero-dots">
+            {heroImages.map((_, index) => (
+              <button
+                key={index}
+                className={`hero-dot ${index === currentSlide ? 'active' : ''}`}
+                onClick={() => setCurrentSlide(index)}
+                aria-label={`Slide ${index + 1}`}
+              />
+            ))}
           </div>
           <div className="hero-badge">
             <div className="badge-text">
@@ -101,6 +150,34 @@ function Home() {
         </div>
       </section>
 
+      {/* Marquee Text - "Có Mặt Khắp Mọi Nơi" */}
+      <section className="marquee-section">
+        <div className="marquee-track">
+          <div className="marquee-content">
+            <span className="marquee-text">DỊCH VỤ NỔI BẬT</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">CÓ MẶT KHẮP MỌI NƠI</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">PREMIUM HAIR SALON</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">30SHINE</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">PHONG CÁCH ĐỈNH CAO</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">DỊCH VỤ NỔI BẬT</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">CÓ MẶT KHẮP MỌI NƠI</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">PREMIUM HAIR SALON</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">30SHINE</span>
+            <span className="marquee-dot">✦</span>
+            <span className="marquee-text">PHONG CÁCH ĐỈNH CAO</span>
+            <span className="marquee-dot">✦</span>
+          </div>
+        </div>
+      </section>
+
       {/* Services Section */}
       <section className="services-section" id="services">
         <div className="section-header">
@@ -111,29 +188,44 @@ function Home() {
           </p>
         </div>
         <div className="services-grid">
-          {services.slice(0, 6).map((service: any, index: number) => (
-            <div key={service.maDichVu} className="service-card">
-              <span className="service-number">0{index + 1}</span>
-              <div className="service-card-image">
-                <div className="service-image-placeholder">
-                  <span>{serviceEmojis[index % serviceEmojis.length]}</span>
+          {services.slice(0, 6).map((service: any, index: number) => {
+            const imageUrl = service.hinhAnh || fallbackServiceImages[index % fallbackServiceImages.length];
+            return (
+              <div key={service.maDichVu} className="service-card">
+                <span className="service-number">0{index + 1}</span>
+                <div className="service-card-image">
+                  <img
+                    src={imageUrl}
+                    alt={service.tenDichVu}
+                    className="service-img"
+                    onError={(e) => {
+                      // Fallback if image fails to load
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextElementSibling) {
+                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                      }
+                    }}
+                  />
+                  <div className="service-image-placeholder" style={{ display: 'none' }}>
+                    <span>✂️</span>
+                  </div>
+                </div>
+                <div className="service-card-content">
+                  <h3>{service.tenDichVu}</h3>
+                  <p className="service-price">{(service.gia || 0).toLocaleString()}đ</p>
+                  <p className="service-description">
+                    {service.moTa || 'Dịch vụ chất lượng cao tại 30Shine'}
+                  </p>
+                  <p className="service-duration">
+                    ⏱ {service.thoiGianPhut} phút • 🎁 +{service.diemThuong} điểm
+                  </p>
+                  <Link to={`/service/${service.maDichVu}`} className="service-link">
+                    Xem chi tiết →
+                  </Link>
                 </div>
               </div>
-              <div className="service-card-content">
-                <h3>{service.tenDichVu}</h3>
-                <p className="service-price">{(service.gia || 0).toLocaleString()}đ</p>
-                <p className="service-description">
-                  {service.moTa || 'Dịch vụ chất lượng cao tại 30Shine'}
-                </p>
-                <p className="service-description">
-                  {serviceEmojis[index % serviceEmojis.length]} {service.thoiGianPhut} phút • 🎁 +{service.diemThuong} điểm
-                </p>
-                <Link to="/login" className="service-link">
-                  Đặt lịch ngay →
-                </Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -149,16 +241,22 @@ function Home() {
         <div className="city-grid">
           {Object.entries(branchesByCity).map(([city, cityBranches]) => (
             <div key={city} className="city-card">
-              <h3>{city}</h3>
-              <p className="salon-count">{cityBranches.length} chi nhánh</p>
-              {cityBranches.map((branch: any) => (
-                <div key={branch.maChiNhanh} className="salon-item">
-                  <p>{branch.tenChiNhanh}</p>
-                  <span>{branch.diaChi}</span>
-                  <br />
-                  <span>📞 {branch.soDienThoai} • 🕐 {branch.gioMoCua} - {branch.gioDongCua}</span>
+              <div className="city-card-header">
+                <div className="city-icon">📍</div>
+                <div>
+                  <h3>{city}</h3>
+                  <p className="salon-count">{cityBranches.length} chi nhánh</p>
                 </div>
-              ))}
+              </div>
+              <div className="salon-list">
+                {cityBranches.map((branch: any) => (
+                  <div key={branch.maChiNhanh} className="salon-item">
+                    <p className="salon-name">{branch.tenChiNhanh}</p>
+                    <span className="salon-address">📍 {branch.diaChi}</span>
+                    <span className="salon-info">📞 {branch.soDienThoai} • 🕐 {branch.gioMoCua} - {branch.gioDongCua}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
