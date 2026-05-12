@@ -90,7 +90,50 @@ function Register() {
 
   return (
     <div className="auth-container">
-      {/* Left Side - Register Form */}
+      {/* Left Side - Store Introduction */}
+      <div className="auth-right">
+        <div className="auth-intro">
+          <div className="auth-intro-logo">💈</div>
+          <p className="auth-intro-subtitle">Premium Hair Salon</p>
+          <h2>Tham gia <span>30Shine</span></h2>
+          <p className="auth-intro-desc">
+            Đăng ký tài khoản để trải nghiệm dịch vụ đặt lịch nhanh chóng, 
+            tích điểm thành viên, và nhận ưu đãi độc quyền từ hệ thống salon tóc nam hàng đầu Việt Nam.
+          </p>
+          <div className="auth-features">
+            <div className="auth-feature">
+              <div className="auth-feature-icon">📅</div>
+              <div className="auth-feature-text">
+                <strong>Đặt lịch online 24/7</strong>
+                <span>Chọn thời gian, chi nhánh phù hợp</span>
+              </div>
+            </div>
+            <div className="auth-feature">
+              <div className="auth-feature-icon">🎁</div>
+              <div className="auth-feature-text">
+                <strong>Tích điểm nhận ưu đãi</strong>
+                <span>Mỗi dịch vụ đều được cộng điểm</span>
+              </div>
+            </div>
+            <div className="auth-feature">
+              <div className="auth-feature-icon">💎</div>
+              <div className="auth-feature-text">
+                <strong>Nâng hạng thành viên</strong>
+                <span>Bạc → Vàng → Kim Cương</span>
+              </div>
+            </div>
+            <div className="auth-feature">
+              <div className="auth-feature-icon">🔔</div>
+              <div className="auth-feature-text">
+                <strong>Thông báo khuyến mãi</strong>
+                <span>Không bỏ lỡ deal hot nào</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Register Form */}
       <div className="auth-left">
         <div className="auth-box register-box">
           <div className="auth-header">
@@ -173,49 +216,6 @@ function Register() {
               <Link to="/" className="back-home">← Về trang chủ</Link>
             </div>
           </form>
-        </div>
-      </div>
-
-      {/* Right Side - Store Introduction */}
-      <div className="auth-right">
-        <div className="auth-intro">
-          <div className="auth-intro-logo">💈</div>
-          <p className="auth-intro-subtitle">Premium Hair Salon</p>
-          <h2>Tham gia <span>30Shine</span></h2>
-          <p className="auth-intro-desc">
-            Đăng ký tài khoản để trải nghiệm dịch vụ đặt lịch nhanh chóng, 
-            tích điểm thành viên, và nhận ưu đãi độc quyền từ hệ thống salon tóc nam hàng đầu Việt Nam.
-          </p>
-          <div className="auth-features">
-            <div className="auth-feature">
-              <div className="auth-feature-icon">📅</div>
-              <div className="auth-feature-text">
-                <strong>Đặt lịch online 24/7</strong>
-                <span>Chọn thời gian, chi nhánh phù hợp</span>
-              </div>
-            </div>
-            <div className="auth-feature">
-              <div className="auth-feature-icon">🎁</div>
-              <div className="auth-feature-text">
-                <strong>Tích điểm nhận ưu đãi</strong>
-                <span>Mỗi dịch vụ đều được cộng điểm</span>
-              </div>
-            </div>
-            <div className="auth-feature">
-              <div className="auth-feature-icon">💎</div>
-              <div className="auth-feature-text">
-                <strong>Nâng hạng thành viên</strong>
-                <span>Bạc → Vàng → Kim Cương</span>
-              </div>
-            </div>
-            <div className="auth-feature">
-              <div className="auth-feature-icon">🔔</div>
-              <div className="auth-feature-text">
-                <strong>Thông báo khuyến mãi</strong>
-                <span>Không bỏ lỡ deal hot nào</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
