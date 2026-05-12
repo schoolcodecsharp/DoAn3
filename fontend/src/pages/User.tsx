@@ -176,7 +176,23 @@ function User() {
                           onClick={() => setSelectedService(service.maDichVu)}
                         >
                           <div className="service-image">
-                            <div className="service-placeholder">✂️</div>
+                            {service.hinhAnh ? (
+                              <img 
+                                src={service.hinhAnh} 
+                                alt={service.tenDichVu}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  borderRadius: '8px'
+                                }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.nextElementSibling!.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div className="service-placeholder" style={{ display: service.hinhAnh ? 'none' : 'flex' }}>✂️</div>
                           </div>
                           <div className="service-info">
                             <div className="service-header">
