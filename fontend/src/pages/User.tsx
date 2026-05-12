@@ -14,6 +14,7 @@ function User() {
   const [branches, setBranches] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [allBookings, setAllBookings] = useState<any[]>([]); // Tất cả lịch hẹn để check availability
   const [invoices, setInvoices] = useState<any[]>([]);
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedBarber, setSelectedBarber] = useState<string>('');
@@ -34,10 +35,14 @@ function User() {
 
   const loadData = async () => {
     try {
-      const [sv, br, st] = await Promise.all([
-        dichVuApi.getAll(), chiNhanhApi.getAll(), nhanVienApi.getAll()
+      const [sv, br, st, allBk] = await Promise.all([
+        dichVuApi.getAll(), 
+        chiNhanhApi.getAll(), 
+        nhanVienApi.getAll(),
+        datLichApi.getAll({}) // Load tất cả lịch hẹn
       ]);
-      setServices(sv); setBranches(br); setStaff(st);
+      setServices(sv); setBranches(br); setStaff(st); setAllBookings(allBk);
+      
       const sdt = currentUser?.SoDienThoai || currentUser?.soDienThoai;
       if (sdt) {
         setBookings(await datLichApi.getAll({ khachHang: sdt }));
@@ -100,6 +105,28 @@ function User() {
   };
 
   const timeSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+
+  // Kiểm tra xem time slot có bị đặt chưa
+  const isTimeSlotBooked = (time: string) => {
+    if (!selectedBarber || !selectedDate) return false;
+    
+    // Lấy tất cả lịch hẹn của nhân viên trong ngày đã chọn
+    const barberBookings = allBookings.filter((b: any) => {
+      const bookingDate = new Date(b.thoiGianHen || b.ThoiGianHen);
+      const bookingDateStr = bookingDate.toISOString().split('T')[0];
+      const bookingTime = bookingDate.toTimeString().slice(0, 5);
+      const maNV = b.maNhanVien || b.MaNhanVien;
+      const trangThai = b.trangThai || b.TrangThai;
+      
+      // Chỉ tính các lịch chưa hủy
+      return maNV === selectedBarber && 
+             bookingDateStr === selectedDate && 
+             bookingTime === time &&
+             trangThai !== 'DaHuy';
+    });
+    
+    return barberBookings.length > 0;
+  };
 
   return (
     <>
@@ -196,8 +223,10 @@ function User() {
                                   borderRadius: '8px'
                                 }}
                                 onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  e.currentTarget.nextElementSibling!.style.display = 'flex';
+                                  const img = e.currentTarget;
+                                  img.style.display = 'none';
+                                  const placeholder = img.nextElementSibling as HTMLElement;
+                                  if (placeholder) placeholder.style.display = 'flex';
                                 }}
                               />
                             ) : null}
@@ -264,15 +293,25 @@ function User() {
                         })}
                       </div>
                       <div className="time-grid">
-                        {timeSlots.map((time) => (
-                          <button
-                            key={time}
-                            className={`time-slot ${selectedTime === time ? 'selected' : ''}`}
-                            onClick={() => setSelectedTime(time)}
-                          >
-                            {time}
-                          </button>
-                        ))}
+                        {timeSlots.map((time) => {
+                          const isBooked = isTimeSlotBooked(time);
+                          return (
+                            <button
+                              key={time}
+                              className={`time-slot ${selectedTime === time ? 'selected' : ''} ${isBooked ? 'booked' : ''}`}
+                              onClick={() => !isBooked && setSelectedTime(time)}
+                              disabled={isBooked}
+                              style={{
+                                opacity: isBooked ? 0.5 : 1,
+                                cursor: isBooked ? 'not-allowed' : 'pointer',
+                                backgroundColor: isBooked ? '#2a2a2c' : (selectedTime === time ? '#D4AF37' : '#1A1A1B')
+                              }}
+                            >
+                              <span>{time}</span>
+                              {isBooked && <span style={{fontSize: '0.7rem', display: 'block', marginTop: '2px'}}>Đã đặt</span>}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </section>
