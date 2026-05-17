@@ -20,6 +20,14 @@ public class DanhGiaController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{maHoaDon}")]
+    public async Task<IActionResult> GetByHoaDon(string maHoaDon)
+    {
+        var result = await _service.GetByHoaDon(maHoaDon);
+        if (result == null) return NotFound(new { message = "Chưa có đánh giá" });
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] DanhGiaDto dto)
     {

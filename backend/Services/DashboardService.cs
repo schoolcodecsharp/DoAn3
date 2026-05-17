@@ -25,7 +25,8 @@ public class DashboardService : IDashboardService
                  WHERE MONTH(ThoiGianTT) = MONTH(GETDATE()) 
                  AND YEAR(ThoiGianTT) = YEAR(GETDATE())) as DoanhThuThang,
                 (SELECT COUNT(*) FROM KhachHang) as SoKhachHang,
-                (SELECT COUNT(*) FROM ChiNhanh WHERE TrangThai = 1) as SoChiNhanh";
+                (SELECT COUNT(*) FROM ChiNhanh WHERE TrangThai = 1) as SoChiNhanh,
+                (SELECT COUNT(*) FROM SanPhamTonKho WHERE SoLuong <= SoLuongToiThieu AND TrangThai = 1) as SanPhamCanhBao";
 
         return await conn.QueryFirstOrDefaultAsync<DashboardStats>(sql) ?? new DashboardStats();
     }
@@ -90,6 +91,89 @@ public class DashboardService : IDashboardService
             ORDER BY dl.ThoiGianHen DESC";
 
         var result = await conn.QueryAsync<RecentBookingData>(sql, new { Limit = limit });
+        return result.ToList();
+    }
+
+    /// <summary>
+    /// Nhân viên thực hiện nhiều dịch vụ nhất (từ ChiTietHoaDon)
+    /// </summary>
+    public async Task<List<TopStaffData>> GetTopStaff(int top)
+    {
+        using var conn = new SqlConnection(_connectionString);
+        var sql = @"
+            SELECT TOP (@Top)
+                nv.MaNhanVien,
+                nv.HoTen,
+                nv.ChucVu,
+                COUNT(DISTINCT hd.MaHoaDon) as SoLuotPhucVu,
+                ISNULL(SUM(hd.ThanhTien), 0) as TongDoanhThu
+            FROM NhanVien nv
+            INNER JOIN DatLich dl ON nv.MaNhanVien = dl.MaNhanVien
+            INNER JOIN HoaDon hd ON dl.MaDatLich = hd.MaDatLich
+            WHERE nv.TrangThai = 1
+            GROUP BY nv.MaNhanVien, nv.HoTen, nv.ChucVu
+            ORDER BY SoLuotPhucVu DESC";
+        var result = await conn.QueryAsync<TopStaffData>(sql, new { Top = top });
+        return result.ToList();
+    }
+
+    /// <summary>
+    /// Đánh giá trung bình (sao dịch vụ, sao nhân viên, sao cửa hàng)
+    /// </summary>
+    public async Task<AverageRatingData> GetAverageRatings()
+    {
+        using var conn = new SqlConnection(_connectionString);
+        var sql = @"
+            SELECT 
+                ISNULL(AVG(CAST(SaoDichVu as FLOAT)), 0) as SaoDichVuTB,
+                ISNULL(AVG(CAST(SaoNhanVien as FLOAT)), 0) as SaoNhanVienTB,
+                ISNULL(AVG(CAST(SaoCuaHang as FLOAT)), 0) as SaoCuaHangTB,
+                COUNT(*) as TongDanhGia
+            FROM DanhGia";
+        return await conn.QueryFirstOrDefaultAsync<AverageRatingData>(sql) ?? new AverageRatingData();
+    }
+
+    /// <summary>
+    /// Khách hàng theo hạng thành viên
+    /// </summary>
+    public async Task<List<CustomerByTierData>> GetCustomersByTier()
+    {
+        using var conn = new SqlConnection(_connectionString);
+        var sql = @"
+            SELECT 
+                HangThanhVien,
+                CASE HangThanhVien 
+                    WHEN 0 THEN N'Thường'
+                    WHEN 1 THEN N'Bạc'
+                    WHEN 2 THEN N'Vàng'
+                    WHEN 3 THEN N'Kim cương'
+                END as TenHang,
+                COUNT(*) as SoLuong
+            FROM KhachHang
+            GROUP BY HangThanhVien
+            ORDER BY HangThanhVien";
+        var result = await conn.QueryAsync<CustomerByTierData>(sql);
+        return result.ToList();
+    }
+
+    /// <summary>
+    /// Doanh thu theo chi nhánh
+    /// </summary>
+    public async Task<List<RevenueByBranchData>> GetRevenueByBranch()
+    {
+        using var conn = new SqlConnection(_connectionString);
+        var sql = @"
+            SELECT 
+                cn.MaChiNhanh,
+                cn.TenChiNhanh,
+                ISNULL(SUM(hd.ThanhTien), 0) as DoanhThu,
+                COUNT(hd.MaHoaDon) as SoDon
+            FROM ChiNhanh cn
+            LEFT JOIN HoaDon hd ON cn.MaChiNhanh = hd.MaChiNhanh
+            WHERE cn.TrangThai = 1
+            GROUP BY cn.MaChiNhanh, cn.TenChiNhanh
+            ORDER BY DoanhThu DESC";
+        var result = await conn.QueryAsync<RevenueByBranchData>(sql);
         return result.ToList();
     }
 }

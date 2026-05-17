@@ -11,6 +11,8 @@ public class DatLichDto
     public string? TrangThai { get; set; }
     public string? NguonDatLich { get; set; }
     public string? GhiChu { get; set; }
+    // Danh sách dịch vụ đã chọn (gửi kèm khi đặt lịch)
+    public List<ChiTietDatLichDto>? DichVuList { get; set; }
 }
 
 public class StatusDto

@@ -42,4 +42,12 @@ public class HoaDonController : ControllerBase
         var result = await _service.GetChiTiet(id);
         return Ok(result);
     }
+
+    [HttpPatch("{id}/thanhtoan")]
+    public async Task<IActionResult> UpdatePayment(string id, [FromBody] HoaDonDto dto)
+    {
+        var result = await _service.UpdatePayment(id, dto);
+        if (result > 0) return Ok(new { success = true, message = "Thanh toán thành công" });
+        return BadRequest(new { success = false, message = "Thanh toán thất bại" });
+    }
 }

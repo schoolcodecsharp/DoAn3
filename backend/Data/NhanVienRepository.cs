@@ -50,4 +50,68 @@ public class NhanVienRepository : INhanVienRepository
         using var db = new SqlConnection(_conn);
         return await db.ExecuteAsync("DELETE FROM NhanVien WHERE MaNhanVien = @id", new { id });
     }
+
+    /// <summary>
+    /// Lấy lịch sử phục vụ của nhân viên: danh sách hóa đơn có liên kết đến lịch hẹn của nhân viên,
+    /// kèm thông tin đánh giá (nếu có)
+    /// </summary>
+    public async Task<IEnumerable<dynamic>> GetServiceHistory(string maNhanVien)
+    {
+        using var db = new SqlConnection(_conn);
+        var sql = @"
+            SELECT 
+                hd.MaHoaDon, 
+                kh.HoTen as TenKhachHang,
+                ISNULL(
+                    (SELECT STRING_AGG(dv.TenDichVu, ', ') 
+                     FROM ChiTietDatLich ctdl 
+                     JOIN DichVu dv ON ctdl.MaDichVu = dv.MaDichVu 
+                     WHERE ctdl.MaDatLich = dl.MaDatLich),
+                    N'Dịch vụ cắt tóc'
+                ) as DichVu,
+                hd.ThanhTien,
+                hd.ThoiGianTT,
+                ISNULL(dg.SaoNhanVien, 0) as SaoNhanVien,
+                dg.NhanXet as NhanXetDanhGia
+            FROM HoaDon hd
+            INNER JOIN DatLich dl ON hd.MaDatLich = dl.MaDatLich
+            LEFT JOIN KhachHang kh ON hd.SoDienThoai = kh.SoDienThoai
+            LEFT JOIN DanhGia dg ON hd.MaHoaDon = dg.MaHoaDon
+            WHERE dl.MaNhanVien = @maNhanVien
+            ORDER BY hd.ThoiGianTT DESC";
+        return await db.QueryAsync<dynamic>(sql, new { maNhanVien });
+    }
+
+    /// <summary>
+    /// Lấy thống kê tháng hiện tại của nhân viên
+    /// </summary>
+    public async Task<dynamic> GetStaffStats(string maNhanVien)
+    {
+        using var db = new SqlConnection(_conn);
+        var sql = @"
+            SELECT 
+                (SELECT COUNT(*) FROM DatLich 
+                 WHERE MaNhanVien = @maNhanVien 
+                 AND TrangThai = 'HoanThanh'
+                 AND MONTH(ThoiGianHen) = MONTH(GETDATE()) 
+                 AND YEAR(ThoiGianHen) = YEAR(GETDATE())) as SoKhach,
+                
+                (SELECT ISNULL(SUM(hd.ThanhTien), 0) FROM HoaDon hd 
+                 INNER JOIN DatLich dl ON hd.MaDatLich = dl.MaDatLich
+                 WHERE dl.MaNhanVien = @maNhanVien
+                 AND MONTH(hd.ThoiGianTT) = MONTH(GETDATE()) 
+                 AND YEAR(hd.ThoiGianTT) = YEAR(GETDATE())) as DoanhThu,
+                
+                (SELECT ISNULL(AVG(CAST(dg.SaoNhanVien as FLOAT)), 0) FROM DanhGia dg
+                 WHERE dg.MaNhanVien = @maNhanVien) as DanhGiaTB,
+                
+                (SELECT COUNT(*) FROM DatLich 
+                 WHERE MaNhanVien = @maNhanVien 
+                 AND TrangThai = 'HoanThanh') as TongKhachDaPhucVu,
+
+                (SELECT ISNULL(SUM(hd.ThanhTien), 0) FROM HoaDon hd 
+                 INNER JOIN DatLich dl ON hd.MaDatLich = dl.MaDatLich
+                 WHERE dl.MaNhanVien = @maNhanVien) as TongDoanhThu";
+        return await db.QueryFirstOrDefaultAsync<dynamic>(sql, new { maNhanVien }) ?? new { SoKhach = 0, DoanhThu = 0m, DanhGiaTB = 0.0, TongKhachDaPhucVu = 0, TongDoanhThu = 0m };
+    }
 }

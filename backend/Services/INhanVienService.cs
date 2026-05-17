@@ -9,4 +9,6 @@ public interface INhanVienService
     Task<int> Create(NhanVienDto dto);
     Task<int> Update(string id, NhanVienDto dto);
     Task<int> Delete(string id);
+    Task<IEnumerable<dynamic>> GetServiceHistory(string maNhanVien);
+    Task<dynamic> GetStaffStats(string maNhanVien);
 }

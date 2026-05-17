@@ -9,6 +9,7 @@ public class DanhGiaService : IDanhGiaService
     public DanhGiaService(IDanhGiaRepository repo) => _repo = repo;
 
     public Task<IEnumerable<dynamic>> GetAll(string? search, string? nhanVien) => _repo.GetAll(search, nhanVien);
+    public Task<dynamic?> GetByHoaDon(string maHoaDon) => _repo.GetByHoaDon(maHoaDon);
 
     public Task<int> Create(DanhGiaDto dto) =>
         _repo.Create(new { dto.MaHoaDon, dto.SoDienThoai, dto.MaNhanVien, dto.SaoDichVu, dto.SaoNhanVien, dto.SaoCuaHang, dto.NhanXet });

@@ -7,4 +7,6 @@ public interface INhanVienRepository
     Task<int> Create(object param);
     Task<int> Update(string id, object param);
     Task<int> Delete(string id);
+    Task<IEnumerable<dynamic>> GetServiceHistory(string maNhanVien);
+    Task<dynamic> GetStaffStats(string maNhanVien);
 }

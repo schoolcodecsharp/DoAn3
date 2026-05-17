@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import '../styles/User.css';
 import { datLichApi, dichVuApi, chiNhanhApi, nhanVienApi, hoaDonApi } from '../utils/api';
 
 function User() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('booking');
   const [currentUser] = useState<any>(() => {
     const stored = localStorage.getItem('currentUser');
@@ -14,14 +15,29 @@ function User() {
   const [branches, setBranches] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
-  const [allBookings, setAllBookings] = useState<any[]>([]); // Tất cả lịch hẹn để check availability
+  const [allBookings, setAllBookings] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [selectedService, setSelectedService] = useState<string>('');
   const [selectedBarber, setSelectedBarber] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [searchHistory, setSearchHistory] = useState('');
-  const [searchInvoice, setSearchInvoice] = useState('');
+  // Review modal state
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewInvoice, setReviewInvoice] = useState<any>(null);
+  const [reviewStarDV, setReviewStarDV] = useState(5);
+  const [reviewStarNV, setReviewStarNV] = useState(5);
+  const [reviewStarCH, setReviewStarCH] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewedInvoices, setReviewedInvoices] = useState<Set<string>>(new Set());
+
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentInvoice, setPaymentInvoice] = useState<any>(null);
+  const [payPromoCode, setPayPromoCode] = useState('');
+  const [payPromoApplied, setPayPromoApplied] = useState<any>(null);
+  const [payPromoError, setPayPromoError] = useState('');
+  const [payMethod, setPayMethod] = useState('TienMat');
+  const [payLoading, setPayLoading] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -39,14 +55,23 @@ function User() {
         dichVuApi.getAll(), 
         chiNhanhApi.getAll(), 
         nhanVienApi.getAll(),
-        datLichApi.getAll({}) // Load tất cả lịch hẹn
+        datLichApi.getAll({})
       ]);
       setServices(sv); setBranches(br); setStaff(st); setAllBookings(allBk);
       
       const sdt = currentUser?.SoDienThoai || currentUser?.soDienThoai;
       if (sdt) {
         setBookings(await datLichApi.getAll({ khachHang: sdt }));
-        setInvoices(await hoaDonApi.getAll({ khachHang: sdt }));
+        const inv = await hoaDonApi.getAll({ khachHang: sdt });
+        setInvoices(inv);
+        // Check which invoices already have reviews
+        const reviewed = new Set<string>();
+        for (const invoice of inv) {
+          const maHD = invoice.maHoaDon || invoice.MaHoaDon;
+          const existing = await danhGiaApi.getByHoaDon(maHD);
+          if (existing) reviewed.add(maHD);
+        }
+        setReviewedInvoices(reviewed);
       }
     } catch (err) { console.error(err); }
   };
@@ -63,13 +88,116 @@ function User() {
         maDatLich: maDL, soDienThoai: sdt,
         maChiNhanh: (branches[0]?.MaChiNhanh || branches[0]?.maChiNhanh || 'CN001'),
         maNhanVien: selectedBarber, thoiGianHen: `${selectedDate}T${selectedTime}:00`,
-        nguonDatLich: 'Website'
+        nguonDatLich: 'Website',
+        dichVuList: [{ maDichVu: selectedService, soLuong: 1 }]
       });
-      alert('Đặt lịch thành công! Vui lòng chờ xác nhận.');
+      alert('Đặt lịch thành công! Hóa đơn đã được tạo tự động. Bạn có thể xem trong tab Hóa đơn.');
       setSelectedService(''); setSelectedBarber(''); setSelectedDate(''); setSelectedTime('');
       loadData();
+      setActiveTab('invoices');
     } catch (err: any) { alert('Lỗi: ' + err.message); }
   };
+
+  const handleOpenReview = (invoice: any) => {
+    setReviewInvoice(invoice);
+    setReviewStarDV(5); setReviewStarNV(5); setReviewStarCH(5);
+    setReviewText('');
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewInvoice || !currentUser) return;
+    try {
+      const sdt = currentUser.SoDienThoai || currentUser.soDienThoai;
+      await danhGiaApi.create({
+        maHoaDon: reviewInvoice.maHoaDon || reviewInvoice.MaHoaDon,
+        soDienThoai: sdt,
+        maNhanVien: reviewInvoice.maNhanVien || reviewInvoice.MaNhanVien || null,
+        saoDichVu: reviewStarDV,
+        saoNhanVien: reviewStarNV,
+        saoCuaHang: reviewStarCH,
+        nhanXet: reviewText
+      });
+      alert('Đánh giá thành công! Cảm ơn bạn.');
+      setShowReviewModal(false);
+      const maHD = reviewInvoice.maHoaDon || reviewInvoice.MaHoaDon;
+      setReviewedInvoices(prev => new Set(prev).add(maHD));
+    } catch (err: any) { alert('Lỗi: ' + err.message); }
+  };
+
+  // Payment modal handlers
+  const handleOpenPayment = (invoice: any) => {
+    setPaymentInvoice(invoice);
+    setPayPromoCode('');
+    setPayPromoApplied(null);
+    setPayPromoError('');
+    setPayMethod('TienMat');
+    setShowPaymentModal(true);
+  };
+
+  const handleApplyPromo = async () => {
+    setPayPromoError('');
+    setPayPromoApplied(null);
+    if (!payPromoCode.trim()) { setPayPromoError('Vui lòng nhập mã khuyến mãi'); return; }
+    try {
+      const promos = await khuyenMaiApi.getAll(payPromoCode);
+      const found = (Array.isArray(promos) ? promos : []).find(
+        (p: any) => (p.maCode || p.MaCode)?.toUpperCase() === payPromoCode.toUpperCase()
+      );
+      if (!found) { setPayPromoError('Mã khuyến mãi không tồn tại'); return; }
+      if (!found.trangThai) { setPayPromoError('Mã khuyến mãi đã hết hạn'); return; }
+      const tongTien = paymentInvoice?.tongTien || paymentInvoice?.TongTien || 0;
+      if (found.donHangToiThieu && tongTien < found.donHangToiThieu) {
+        setPayPromoError(`Đơn hàng tối thiểu ${found.donHangToiThieu.toLocaleString()}đ`);
+        return;
+      }
+      setPayPromoApplied(found);
+    } catch {
+      setPayPromoError('Không thể kiểm tra mã khuyến mãi');
+    }
+  };
+
+  const getPayDiscount = () => {
+    if (!payPromoApplied || !paymentInvoice) return 0;
+    const tongTien = paymentInvoice.tongTien || paymentInvoice.TongTien || 0;
+    if (payPromoApplied.loaiGiam === 'PhanTram') {
+      return Math.min(tongTien * payPromoApplied.giaTriGiam / 100, payPromoApplied.giaTriToiDa || Infinity);
+    }
+    return payPromoApplied.giaTriGiam;
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!paymentInvoice || !currentUser) return;
+    setPayLoading(true);
+    try {
+      const maHD = paymentInvoice.maHoaDon || paymentInvoice.MaHoaDon;
+      const tongTien = paymentInvoice.tongTien || paymentInvoice.TongTien || 0;
+      const discount = getPayDiscount();
+      const thanhTien = Math.max(0, tongTien - discount);
+      await hoaDonApi.updatePayment(maHD, {
+        maCode: payPromoApplied?.maCode || null,
+        maDatLich: paymentInvoice.maDatLich || paymentInvoice.MaDatLich || null,
+        giamGia: discount,
+        thanhTien: thanhTien,
+        phuongThucTT: payMethod,
+        ghiChu: 'Đã thanh toán'
+      });
+      alert('Thanh toán thành công!');
+      setShowPaymentModal(false);
+      loadData();
+    } catch (err: any) {
+      alert('Lỗi thanh toán: ' + err.message);
+    }
+    setPayLoading(false);
+  };
+
+  const renderStars = (value: number, onChange: (v: number) => void) => (
+    <div className="star-rating-input">
+      {[1,2,3,4,5].map(s => (
+        <span key={s} className={`star-btn ${s <= value ? 'active' : ''}`} onClick={() => onChange(s)}>★</span>
+      ))}
+    </div>
+  );
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { text: string; className: string }> = {
@@ -164,6 +292,10 @@ function User() {
           <button className={activeTab === 'invoices' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('invoices')}>
             <span className="nav-icon">🧾</span>
             HÓA ĐƠN
+          </button>
+          <button className={activeTab === 'rewards' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('rewards')}>
+            <span className="nav-icon">🎁</span>
+            ĐỔI THƯỞNG
           </button>
           <button className={activeTab === 'profile' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('profile')}>
             <span className="nav-icon">👤</span>
@@ -438,31 +570,143 @@ function User() {
                       <th>Ngày tạo</th>
                       <th>Tổng tiền</th>
                       <th>Giảm giá</th>
-                      <th>Thanh toán</th>
-                      <th>Điểm thưởng</th>
+                      <th>Thành tiền</th>
+                      <th>Trạng thái</th>
+                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoices.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{textAlign: 'center', padding: '2rem'}}>
+                        <td colSpan={7} style={{textAlign: 'center', padding: '2rem'}}>
                           Chưa có hóa đơn nào
                         </td>
                       </tr>
                     ) : (
-                      invoices.map(invoice => (
-                        <tr key={invoice.maHoaDon}>
-                          <td>{invoice.maHoaDon}</td>
-                          <td>{new Date(invoice.thoiGianTT).toLocaleDateString('vi-VN')}</td>
-                          <td>{invoice.tongTien.toLocaleString()}đ</td>
-                          <td>{invoice.giamGia.toLocaleString()}đ</td>
-                          <td>{invoice.thanhTien.toLocaleString()}đ</td>
-                          <td>+{invoice.diemDuocCong}</td>
-                        </tr>
-                      ))
+                      invoices.map(invoice => {
+                        const maHD = invoice.maHoaDon || invoice.MaHoaDon;
+                        const isReviewed = reviewedInvoices.has(maHD);
+                        const phuongThuc = invoice.phuongThucTT || invoice.PhuongThucTT;
+                        const isPaid = phuongThuc !== 'ChuaThanhToan';
+                        return (
+                          <tr key={maHD}>
+                            <td>{maHD}</td>
+                            <td>{new Date(invoice.thoiGianTT || invoice.ThoiGianTT).toLocaleDateString('vi-VN')}</td>
+                            <td>{(invoice.tongTien || invoice.TongTien || 0).toLocaleString()}đ</td>
+                            <td>{(invoice.giamGia || invoice.GiamGia || 0).toLocaleString()}đ</td>
+                            <td style={{color: '#D4AF37', fontWeight: 700}}>{(invoice.thanhTien || invoice.ThanhTien || 0).toLocaleString()}đ</td>
+                            <td>
+                              {isPaid ? (
+                                <span className="status-badge completed">Đã thanh toán</span>
+                              ) : (
+                                <span className="status-badge pending">Chờ thanh toán</span>
+                              )}
+                            </td>
+                            <td style={{display: 'flex', gap: '0.4rem', flexWrap: 'wrap'}}>
+                              {!isPaid && (
+                                <button className="btn-review" style={{background: 'linear-gradient(135deg, #D4AF37, #c49b2f)', color: '#000'}} onClick={() => handleOpenPayment(invoice)}>💳 Thanh toán</button>
+                              )}
+                              {isPaid && !isReviewed && (
+                                <button className="btn-review" onClick={() => handleOpenReview(invoice)}>⭐ Đánh giá</button>
+                              )}
+                              {isPaid && isReviewed && (
+                                <span style={{color: '#22c55e', fontSize: '0.8rem', fontWeight: 600}}>✅ Đã đánh giá</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+          {activeTab === 'rewards' && !currentUser && (
+            <div className="profile-container">
+              <div className="page-header"><h1 className="page-title">🎁 TRA CỨU & ĐỔI THƯỞNG</h1></div>
+              <div style={{textAlign:'center',padding:'3rem',background:'#242426',borderRadius:'12px',border:'1px solid #3f3f46'}}>
+                <p style={{fontSize:'1.2rem',color:'#a1a1aa'}}>Vui lòng <Link to="/login" style={{color:'#D4AF37',fontWeight:700}}>đăng nhập</Link> để xem điểm thưởng và đổi quà.</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'rewards' && currentUser && (
+            <div className="profile-container">
+              <div className="page-header">
+                <h1 className="page-title">🎁 TRA CỨU & ĐỔI THƯỞNG</h1>
+              </div>
+              <div className="profile-card-main" style={{marginBottom:'1.5rem'}}>
+                <div className="profile-avatar-section">
+                  <div className="profile-avatar-large" style={{background:'linear-gradient(135deg,#D4AF37,#f59e0b)'}}>{currentUser?.hoTen?.charAt(0) || 'U'}</div>
+                  <h3 className="profile-name">{currentUser?.hoTen || 'Khách hàng'}</h3>
+                  <p className="profile-rank" style={{fontSize:'1rem'}}>
+                    Hạng: <strong style={{color:'#D4AF37'}}>{['Thường', 'Bạc', 'Vàng', 'Kim cương'][currentUser.hangThanhVien || 0]}</strong>
+                  </p>
+                </div>
+                <div className="profile-stats">
+                  <div className="stat-box">
+                    <div className="stat-value" style={{color:'#D4AF37',fontSize:'2rem'}}>{currentUser.diemTichLuy || 0}</div>
+                    <div className="stat-label">Điểm hiện có</div>
+                  </div>
+                  <div className="stat-box">
+                    <div className="stat-value">{currentUser.tongDiemTich || 0}</div>
+                    <div className="stat-label">Tổng điểm tích lũy</div>
+                  </div>
+                  <div className="stat-box">
+                    <div className="stat-value">{bookings.length}</div>
+                    <div className="stat-label">Lượt đặt lịch</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bảng hạng thành viên */}
+              <div style={{background:'#242426',borderRadius:'12px',padding:'1.5rem',border:'1px solid #3f3f46',marginBottom:'1.5rem'}}>
+                <h3 style={{color:'#D4AF37',marginBottom:'1rem'}}>📊 Bảng hạng thành viên</h3>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.8rem'}}>
+                  {[{name:'Thường',min:0,max:99,color:'#a1a1aa',icon:'🥉'},{name:'Bạc',min:100,max:499,color:'#94a3b8',icon:'🥈'},{name:'Vàng',min:500,max:999,color:'#D4AF37',icon:'🥇'},{name:'Kim cương',min:1000,max:Infinity,color:'#60a5fa',icon:'💎'}].map((tier,i) => (
+                    <div key={tier.name} style={{background:currentUser.hangThanhVien===i?`${tier.color}15`:'#18181b',border:`1px solid ${currentUser.hangThanhVien===i?tier.color:'#3f3f46'}`,borderRadius:'10px',padding:'1rem',textAlign:'center',transition:'all .2s'}}>
+                      <div style={{fontSize:'1.5rem'}}>{tier.icon}</div>
+                      <div style={{fontWeight:700,color:tier.color,marginTop:'0.3rem'}}>{tier.name}</div>
+                      <div style={{fontSize:'0.75rem',color:'#71717a',marginTop:'0.2rem'}}>{tier.min}{tier.max===Infinity?'+':` - ${tier.max}`} điểm</div>
+                      {currentUser.hangThanhVien===i && <div style={{marginTop:'0.3rem',fontSize:'0.7rem',color:tier.color,fontWeight:600}}>⬤ Hạng hiện tại</div>}
+                    </div>
+                  ))}
+                </div>
+                <p style={{marginTop:'0.8rem',fontSize:'0.8rem',color:'#71717a'}}>Tổng điểm tích lũy của bạn: <strong style={{color:'#D4AF37'}}>{currentUser.tongDiemTich || 0}</strong> điểm {currentUser.hangThanhVien < 3 ? `• Cần thêm ${[100,500,1000][currentUser.hangThanhVien || 0] - (currentUser.tongDiemTich || 0)} điểm để lên hạng tiếp theo` : '• Bạn đã đạt hạng cao nhất!'}</p>
+              </div>
+
+              {/* Đổi thưởng */}
+              <div style={{background:'#242426',borderRadius:'12px',padding:'1.5rem',border:'1px solid #3f3f46'}}>
+                <h3 style={{color:'#D4AF37',marginBottom:'1rem'}}>🎁 Đổi điểm lấy ưu đãi</h3>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:'1rem'}}>
+                  {[
+                    {name:'Giảm 10% hóa đơn',points:50,icon:'🏷️',desc:'Áp dụng cho hóa đơn tiếp theo'},
+                    {name:'Giảm 20% hóa đơn',points:100,icon:'🎫',desc:'Áp dụng cho hóa đơn tiếp theo'},
+                    {name:'Miễn phí gội đầu',points:30,icon:'💆',desc:'1 lần gội đầu miễn phí'},
+                    {name:'Miễn phí cắt tóc',points:200,icon:'✂️',desc:'1 lần cắt tóc miễn phí'},
+                    {name:'Combo VIP',points:500,icon:'👑',desc:'Cắt + Gội + Massage'},
+                    {name:'Voucher 100K',points:150,icon:'💰',desc:'Giảm trực tiếp 100.000đ'},
+                  ].map(reward => (
+                    <div key={reward.name} style={{background:'#18181b',borderRadius:'10px',padding:'1rem',border:'1px solid #3f3f46',display:'flex',flexDirection:'column',gap:'0.5rem'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontSize:'1.5rem'}}>{reward.icon}</span>
+                        <span style={{background:'#D4AF3720',color:'#D4AF37',padding:'0.2rem 0.6rem',borderRadius:'20px',fontSize:'0.75rem',fontWeight:700}}>{reward.points} điểm</span>
+                      </div>
+                      <h4 style={{color:'white',margin:0,fontSize:'0.95rem'}}>{reward.name}</h4>
+                      <p style={{color:'#71717a',fontSize:'0.8rem',margin:0}}>{reward.desc}</p>
+                      <button 
+                        disabled={(currentUser.diemTichLuy || 0) < reward.points}
+                        onClick={() => alert(`Đổi thành công: ${reward.name}! Trừ ${reward.points} điểm.`)}
+                        style={{marginTop:'auto',padding:'0.5rem',borderRadius:'6px',border:'none',fontWeight:600,fontSize:'0.85rem',cursor:(currentUser.diemTichLuy||0)>=reward.points?'pointer':'not-allowed',
+                          background:(currentUser.diemTichLuy||0)>=reward.points?'linear-gradient(135deg,#D4AF37,#c49b2f)':'#3f3f46',
+                          color:(currentUser.diemTichLuy||0)>=reward.points?'#000':'#71717a',
+                          transition:'all .2s'
+                        }}
+                      >{(currentUser.diemTichLuy||0)>=reward.points?'Đổi ngay':'Chưa đủ điểm'}</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -482,8 +726,8 @@ function User() {
                 </div>
                 <div className="profile-details">
                   <div className="detail-row">
-                    <span className="detail-label">Mã nhân viên:</span>
-                    <span className="detail-value">{currentUser.soDienThoai}</span>
+                    <span className="detail-label">Họ tên:</span>
+                    <span className="detail-value">{currentUser.hoTen || 'Chưa cập nhật'}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Số điện thoại:</span>
@@ -536,11 +780,156 @@ function User() {
           <span className="mobile-nav-icon">🧾</span>
           <span className="mobile-nav-label">Hóa đơn</span>
         </button>
+        <button className={activeTab === 'rewards' ? 'mobile-nav-item active' : 'mobile-nav-item'} onClick={() => setActiveTab('rewards')}>
+          <span className="mobile-nav-icon">🎁</span>
+          <span className="mobile-nav-label">Đổi thưởng</span>
+        </button>
         <button className={activeTab === 'profile' ? 'mobile-nav-item active' : 'mobile-nav-item'} onClick={() => setActiveTab('profile')}>
           <span className="mobile-nav-icon">👤</span>
           <span className="mobile-nav-label">Tôi</span>
         </button>
       </nav>
+
+      {/* Review Modal */}
+      {showReviewModal && reviewInvoice && (
+        <div className="review-modal-overlay" onClick={() => setShowReviewModal(false)}>
+          <div className="review-modal" onClick={e => e.stopPropagation()}>
+            <div className="review-modal-header">
+              <h3>⭐ ĐÁNH GIÁ DỊCH VỤ</h3>
+              <button className="review-close-btn" onClick={() => setShowReviewModal(false)}>×</button>
+            </div>
+            <div className="review-modal-body">
+              <p className="review-invoice-id">Hóa đơn: <strong>{reviewInvoice.maHoaDon || reviewInvoice.MaHoaDon}</strong></p>
+              <div className="review-field">
+                <label>Chất lượng dịch vụ</label>
+                {renderStars(reviewStarDV, setReviewStarDV)}
+              </div>
+              <div className="review-field">
+                <label>Nhân viên phục vụ</label>
+                {renderStars(reviewStarNV, setReviewStarNV)}
+              </div>
+              <div className="review-field">
+                <label>Cửa hàng</label>
+                {renderStars(reviewStarCH, setReviewStarCH)}
+              </div>
+              <div className="review-field">
+                <label>Nhận xét</label>
+                <textarea
+                  className="review-textarea"
+                  placeholder="Chia sẻ trải nghiệm của bạn..."
+                  value={reviewText}
+                  onChange={e => setReviewText(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <div className="review-modal-footer">
+              <button className="review-cancel-btn" onClick={() => setShowReviewModal(false)}>Hủy</button>
+              <button className="review-submit-btn" onClick={handleSubmitReview}>Gửi đánh giá</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && paymentInvoice && (() => {
+        const tongTien = paymentInvoice.tongTien || paymentInvoice.TongTien || 0;
+        const discount = getPayDiscount();
+        const thanhTien = Math.max(0, tongTien - discount);
+        return (
+          <div className="review-modal-overlay" onClick={() => setShowPaymentModal(false)}>
+            <div className="review-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '520px'}}>
+              <div className="review-modal-header" style={{background: 'linear-gradient(135deg, #D4AF37, #c49b2f)'}}>
+                <h3 style={{color: '#000'}}>💳 THANH TOÁN HÓA ĐƠN</h3>
+                <button className="review-close-btn" onClick={() => setShowPaymentModal(false)} style={{color: '#000'}}>×</button>
+              </div>
+              <div className="review-modal-body">
+                <p className="review-invoice-id">Hóa đơn: <strong>{paymentInvoice.maHoaDon || paymentInvoice.MaHoaDon}</strong></p>
+
+                {/* Tổng tiền */}
+                <div style={{background: '#18181b', borderRadius: '10px', padding: '1rem', marginBottom: '1rem', border: '1px solid #3f3f46'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem'}}>
+                    <span style={{color: '#a1a1aa'}}>Tổng tiền dịch vụ</span>
+                    <span style={{color: '#fff', fontWeight: 600}}>{tongTien.toLocaleString()}đ</span>
+                  </div>
+                  {discount > 0 && (
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem'}}>
+                      <span style={{color: '#22c55e'}}>🎁 Giảm giá</span>
+                      <span style={{color: '#22c55e', fontWeight: 600}}>-{discount.toLocaleString()}đ</span>
+                    </div>
+                  )}
+                  <div style={{borderTop: '1px solid #3f3f46', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between'}}>
+                    <span style={{color: '#D4AF37', fontWeight: 700, fontSize: '1.1rem'}}>Thành tiền</span>
+                    <span style={{color: '#D4AF37', fontWeight: 700, fontSize: '1.1rem'}}>{thanhTien.toLocaleString()}đ</span>
+                  </div>
+                </div>
+
+                {/* Mã khuyến mãi */}
+                <div className="review-field">
+                  <label>🎁 Mã giảm giá</label>
+                  <div style={{display: 'flex', gap: '0.5rem'}}>
+                    <input
+                      type="text"
+                      placeholder="Nhập mã khuyến mãi..."
+                      value={payPromoCode}
+                      onChange={e => setPayPromoCode(e.target.value.toUpperCase())}
+                      style={{flex: 1, padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #3f3f46', background: '#18181b', color: '#fff', fontSize: '0.9rem'}}
+                    />
+                    <button
+                      onClick={handleApplyPromo}
+                      style={{padding: '0.6rem 1rem', borderRadius: '8px', border: 'none', background: '#D4AF37', color: '#000', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'}}
+                    >Áp dụng</button>
+                  </div>
+                  {payPromoError && <p style={{color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem'}}>❌ {payPromoError}</p>}
+                  {payPromoApplied && (
+                    <div style={{background: '#22c55e15', border: '1px solid #22c55e40', borderRadius: '8px', padding: '0.5rem 0.8rem', marginTop: '0.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <span style={{color: '#22c55e', fontSize: '0.85rem'}}>✅ {payPromoApplied.tenKhuyenMai}</span>
+                      <span style={{color: '#22c55e', fontWeight: 700, fontSize: '0.85rem'}}>
+                        -{payPromoApplied.loaiGiam === 'PhanTram' ? `${payPromoApplied.giaTriGiam}%` : `${payPromoApplied.giaTriGiam?.toLocaleString()}đ`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Phương thức thanh toán */}
+                <div className="review-field">
+                  <label>💳 Phương thức thanh toán</label>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginTop: '0.3rem'}}>
+                    {[
+                      {value: 'TienMat', icon: '💵', label: 'Tiền mặt'},
+                      {value: 'ChuyenKhoan', icon: '🏦', label: 'Chuyển khoản'},
+                      {value: 'Momo', icon: '📱', label: 'Momo'},
+                      {value: 'VNPay', icon: '💳', label: 'VNPay'},
+                    ].map(m => (
+                      <button
+                        key={m.value}
+                        onClick={() => setPayMethod(m.value)}
+                        style={{
+                          padding: '0.6rem', borderRadius: '8px', cursor: 'pointer',
+                          border: payMethod === m.value ? '2px solid #D4AF37' : '1px solid #3f3f46',
+                          background: payMethod === m.value ? '#D4AF3715' : '#18181b',
+                          color: payMethod === m.value ? '#D4AF37' : '#a1a1aa',
+                          fontWeight: payMethod === m.value ? 700 : 400,
+                          transition: 'all 0.2s', fontSize: '0.85rem'
+                        }}
+                      >{m.icon} {m.label}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="review-modal-footer">
+                <button className="review-cancel-btn" onClick={() => setShowPaymentModal(false)}>Hủy</button>
+                <button
+                  className="review-submit-btn"
+                  onClick={handleConfirmPayment}
+                  disabled={payLoading}
+                  style={{background: 'linear-gradient(135deg, #D4AF37, #c49b2f)', color: '#000'}}
+                >{payLoading ? '⏳ Đang xử lý...' : `💳 Thanh toán ${thanhTien.toLocaleString()}đ`}</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

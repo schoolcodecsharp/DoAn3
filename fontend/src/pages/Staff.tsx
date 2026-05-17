@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/Staff.css';
-import { nhanVienApi, datLichApi, dichVuApi, hoaDonApi, danhGiaApi } from '../utils/api';
-
-// Helper to get service names from chi tiet
-const getServiceNamesFromApt = (apt: any) => {
-  return apt.ghiChu || 'Dịch vụ cắt tóc';
-};
+import { nhanVienApi, datLichApi, dichVuApi, danhGiaApi } from '../utils/api';
 
 function Staff() {
   const [activeTab, setActiveTab] = useState('schedule');
@@ -14,9 +9,8 @@ function Staff() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [completedServices, setCompletedServices] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
-  const [searchAppointment, setSearchAppointment] = useState('');
   const [services, setServices] = useState<any[]>([]);
-  const [monthlyStats, setMonthlyStats] = useState({ soKhach: 0, doanhThu: '0đ', danhGiaTB: 0, soGioLam: 0 });
+  const [monthlyStats, setMonthlyStats] = useState({ soKhach: 0, doanhThu: '0đ', danhGiaTB: 0, soGioLam: 0, tongKhach: 0, tongDoanhThu: '0đ' });
 
   useEffect(() => { loadData(); }, []);
 
@@ -24,21 +18,73 @@ function Staff() {
     try {
       const allServices = await dichVuApi.getAll();
       setServices(allServices);
-      const staffData = await nhanVienApi.getById('NV001');
+
+      // Lấy thông tin nhân viên đang đăng nhập
+      const currentUser = localStorage.getItem('currentUser');
+      let maNV = 'NV001';
+      if (currentUser) {
+        const user = JSON.parse(currentUser);
+        maNV = user.maNhanVien || user.MaNhanVien || 'NV001';
+      }
+
+      const staffData = await nhanVienApi.getById(maNV);
       setStaffInfo(staffData);
-      const maNV = staffData.maNhanVien || 'NV001';
+      maNV = staffData.maNhanVien || 'NV001';
+
+      // Lấy lịch hẹn hôm nay (đã xác nhận + đang phục vụ)
       const staffApts = await datLichApi.getAll({ nhanVien: maNV });
-      setAppointments(staffApts);
+      const today = new Date().toISOString().split('T')[0];
+      const todayApts = staffApts.filter((a: any) => {
+        const aptDate = new Date(a.thoiGianHen).toISOString().split('T')[0];
+        const status = a.trangThai || a.TrangThai;
+        return aptDate === today && status !== 'DaHuy' && status !== 'HoanThanh';
+      });
+      setAppointments(todayApts);
+
+      // Lấy lịch sử phục vụ từ API mới
+      try {
+        const history = await nhanVienApi.getServiceHistory(maNV);
+        const historyArr = Array.isArray(history) ? history : [];
+        setCompletedServices(historyArr.map((item: any) => ({
+          maHoaDon: item.maHoaDon,
+          khachHang: item.tenKhachHang || 'Khách hàng',
+          dichVu: item.dichVu || 'Dịch vụ cắt tóc',
+          thanhTien: (item.thanhTien || 0).toLocaleString() + 'đ',
+          thoiGian: new Date(item.thoiGianTT).toLocaleDateString('vi-VN'),
+          danhGia: item.saoNhanVien || 0,
+          nhanXet: item.nhanXetDanhGia || ''
+        })));
+      } catch { setCompletedServices([]); }
+
+      // Lấy đánh giá từ API 
       const staffReviews = await danhGiaApi.getAll({ nhanVien: maNV });
-      setReviews(staffReviews.map((dg: any) => ({
-        khachHang: dg.TenKhachHang || 'Khách hàng',
-        sao: dg.SaoNhanVien || dg.saoNhanVien || 0,
-        nhanXet: dg.NhanXet || dg.nhanXet,
-        thoiGian: new Date(dg.NgayDanhGia || dg.ngayDanhGia).toLocaleDateString('vi-VN')
+      const reviewsArr = Array.isArray(staffReviews) ? staffReviews : [];
+      setReviews(reviewsArr.map((dg: any) => ({
+        khachHang: dg.tenKhachHang || 'Khách hàng',
+        sao: dg.saoNhanVien || 0,
+        saoDichVu: dg.saoDichVu || 0,
+        saoCuaHang: dg.saoCuaHang || 0,
+        nhanXet: dg.nhanXet || '',
+        thoiGian: new Date(dg.ngayDanhGia).toLocaleDateString('vi-VN')
       })));
-      const avgR = staffReviews.length > 0
-        ? (staffReviews.reduce((s: number, d: any) => s + (d.SaoNhanVien || d.saoNhanVien || 0), 0) / staffReviews.length).toFixed(1) : '0';
-      setMonthlyStats({ soKhach: staffApts.filter((a: any) => (a.TrangThai || a.trangThai) === 'HoanThanh').length, doanhThu: '0đ', danhGiaTB: parseFloat(avgR), soGioLam: 176 });
+
+      // Lấy thống kê từ API mới
+      try {
+        const stats = await nhanVienApi.getStats(maNV);
+        const avgR = reviewsArr.length > 0
+          ? (reviewsArr.reduce((s: number, d: any) => s + (d.saoNhanVien || 0), 0) / reviewsArr.length).toFixed(1)
+          : (stats.danhGiaTB || 0).toFixed(1);
+        setMonthlyStats({
+          soKhach: stats.soKhach || 0,
+          doanhThu: (stats.doanhThu || 0).toLocaleString() + 'đ',
+          danhGiaTB: parseFloat(avgR),
+          soGioLam: (stats.soKhach || 0) * 1, // ~1h per customer
+          tongKhach: stats.tongKhachDaPhucVu || 0,
+          tongDoanhThu: (stats.tongDoanhThu || 0).toLocaleString() + 'đ'
+        });
+      } catch {
+        setMonthlyStats({ soKhach: 0, doanhThu: '0đ', danhGiaTB: 0, soGioLam: 0, tongKhach: 0, tongDoanhThu: '0đ' });
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -61,6 +107,8 @@ function Staff() {
   if (!staffInfo) {
     return <div>Loading...</div>;
   }
+
+  const currentMonth = new Date().toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' });
 
   return (
     <div className="staff-container">
@@ -128,15 +176,17 @@ function Staff() {
               
               <div className="appointments-list">
                 {appointments.length === 0 ? (
-                  <p>Không có lịch hẹn nào</p>
+                  <div className="empty-state">
+                    <span className="empty-icon">📅</span>
+                    <p>Không có lịch hẹn nào hôm nay</p>
+                  </div>
                 ) : (
                   appointments.map((apt) => {
-                    const serviceNames = getServiceNamesFromApt(apt);
                     return (
                       <div key={apt.maDatLich} className="appointment-card">
                         <div className="appointment-header">
                           <div>
-                            <h3>Khách hàng</h3>
+                            <h3>{apt.tenKhachHang || 'Khách hàng'}</h3>
                             <p className="appointment-code">{apt.maDatLich} • {apt.soDienThoai}</p>
                           </div>
                           <span className={`status-badge ${(apt.trangThai || '').toLowerCase()}`}>
@@ -151,14 +201,8 @@ function Staff() {
                           </div>
                           <div className="detail-row">
                             <span className="label">✂️ Dịch vụ:</span>
-                            <span className="value">{serviceNames}</span>
+                            <span className="value">{apt.ghiChu || 'Dịch vụ cắt tóc'}</span>
                           </div>
-                          {apt.ghiChu && (
-                            <div className="detail-row">
-                              <span className="label">📝 Ghi chú:</span>
-                              <span className="value">{apt.ghiChu}</span>
-                            </div>
-                          )}
                         </div>
 
                         <div className="appointment-actions">
@@ -167,18 +211,23 @@ function Staff() {
                               className="btn-action primary"
                               onClick={() => handleUpdateStatus(apt.maDatLich, 'DangPhucVu')}
                             >
-                              Bắt đầu phục vụ
+                              ✂️ Bắt đầu phục vụ
                             </button>
                           )}
                           {apt.trangThai === 'DangPhucVu' && (
-                            <button 
-                              className="btn-action success"
-                              onClick={() => handleUpdateStatus(apt.maDatLich, 'HoanThanh')}
-                            >
-                              Hoàn thành
-                            </button>
+                            <>
+                              <span className="serving-indicator">
+                                🔄 Đang phục vụ khách...
+                              </span>
+                              <button 
+                                className="btn-action primary"
+                                style={{background: 'linear-gradient(135deg, #22c55e, #16a34a)', marginLeft: '0.5rem'}}
+                                onClick={() => handleUpdateStatus(apt.maDatLich, 'HoanThanh')}
+                              >
+                                ✅ Hoàn thành
+                              </button>
+                            </>
                           )}
-                          <button className="btn-action secondary">Chi tiết</button>
                         </div>
                       </div>
                     );
@@ -191,7 +240,7 @@ function Staff() {
           {activeTab === 'history' && (
             <div className="history-section">
               <h2>Lịch Sử Phục Vụ</h2>
-              <p className="section-subtitle">Các dịch vụ đã hoàn thành</p>
+              <p className="section-subtitle">Các dịch vụ đã hoàn thành ({completedServices.length} lượt)</p>
 
               <div className="history-table-wrapper">
                 <table className="history-table">
@@ -206,20 +255,32 @@ function Staff() {
                     </tr>
                   </thead>
                   <tbody>
-                    {completedServices.map((service) => (
-                      <tr key={service.maHoaDon}>
-                        <td>{service.maHoaDon}</td>
-                        <td>{service.khachHang}</td>
-                        <td>{service.dichVu}</td>
-                        <td className="amount">{service.thanhTien}</td>
-                        <td>{service.thoiGian}</td>
-                        <td>
-                          <span className="rating">
-                            {'⭐'.repeat(service.danhGia)}
-                          </span>
+                    {completedServices.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{textAlign: 'center', padding: '2rem', color: '#888'}}>
+                          Chưa có lịch sử phục vụ
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      completedServices.map((service) => (
+                        <tr key={service.maHoaDon}>
+                          <td>{service.maHoaDon}</td>
+                          <td>{service.khachHang}</td>
+                          <td>{service.dichVu}</td>
+                          <td className="amount">{service.thanhTien}</td>
+                          <td>{service.thoiGian}</td>
+                          <td>
+                            {service.danhGia > 0 ? (
+                              <span className="rating">
+                                {'⭐'.repeat(service.danhGia)}
+                              </span>
+                            ) : (
+                              <span style={{color: '#666', fontSize: '0.85rem'}}>Chưa đánh giá</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -229,23 +290,36 @@ function Staff() {
           {activeTab === 'reviews' && (
             <div className="reviews-section">
               <h2>Đánh Giá Từ Khách Hàng</h2>
-              <p className="section-subtitle">Đánh giá trung bình: ⭐ {monthlyStats.danhGiaTB}/5</p>
+              <p className="section-subtitle">
+                Đánh giá trung bình: ⭐ {monthlyStats.danhGiaTB}/5 ({reviews.length} đánh giá)
+              </p>
 
               <div className="reviews-list">
-                {reviews.map((review, index) => (
-                  <div key={index} className="review-card">
-                    <div className="review-header">
-                      <div>
-                        <h4>{review.khachHang}</h4>
-                        <span className="review-date">{review.thoiGian}</span>
-                      </div>
-                      <span className="review-stars">
-                        {'⭐'.repeat(review.sao)}
-                      </span>
-                    </div>
-                    <p className="review-text">{review.nhanXet}</p>
+                {reviews.length === 0 ? (
+                  <div className="empty-state">
+                    <span className="empty-icon">⭐</span>
+                    <p>Chưa có đánh giá nào</p>
                   </div>
-                ))}
+                ) : (
+                  reviews.map((review, index) => (
+                    <div key={index} className="review-card">
+                      <div className="review-header">
+                        <div>
+                          <h4>{review.khachHang}</h4>
+                          <span className="review-date">{review.thoiGian}</span>
+                        </div>
+                        <span className="review-stars">
+                          {'⭐'.repeat(review.sao)}
+                        </span>
+                      </div>
+                      <div className="review-scores">
+                        <span>Dịch vụ: {'★'.repeat(review.saoDichVu)}</span>
+                        <span>Cửa hàng: {'★'.repeat(review.saoCuaHang)}</span>
+                      </div>
+                      {review.nhanXet && <p className="review-text">"{review.nhanXet}"</p>}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -253,7 +327,7 @@ function Staff() {
           {activeTab === 'stats' && (
             <div className="stats-section">
               <h2>Thống Kê Tháng Này</h2>
-              <p className="section-subtitle">Tháng 04/2026</p>
+              <p className="section-subtitle">Tháng {currentMonth}</p>
 
               <div className="stats-grid">
                 <div className="stat-card">
@@ -261,6 +335,7 @@ function Staff() {
                   <div className="stat-info">
                     <h3>Số khách phục vụ</h3>
                     <p className="stat-number">{monthlyStats.soKhach}</p>
+                    <span className="stat-sub">tháng này</span>
                   </div>
                 </div>
                 <div className="stat-card">
@@ -268,6 +343,7 @@ function Staff() {
                   <div className="stat-info">
                     <h3>Doanh thu</h3>
                     <p className="stat-number">{monthlyStats.doanhThu}</p>
+                    <span className="stat-sub">tháng này</span>
                   </div>
                 </div>
                 <div className="stat-card">
@@ -275,26 +351,37 @@ function Staff() {
                   <div className="stat-info">
                     <h3>Đánh giá TB</h3>
                     <p className="stat-number">{monthlyStats.danhGiaTB}/5</p>
+                    <span className="stat-sub">{reviews.length} đánh giá</span>
                   </div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon">⏰</div>
+                  <div className="stat-icon">📊</div>
                   <div className="stat-info">
-                    <h3>Giờ làm việc</h3>
-                    <p className="stat-number">{monthlyStats.soGioLam}h</p>
+                    <h3>Tổng khách đã phục vụ</h3>
+                    <p className="stat-number">{monthlyStats.tongKhach}</p>
+                    <span className="stat-sub">tất cả thời gian</span>
                   </div>
                 </div>
               </div>
 
-              <div className="performance-chart">
-                <h3>Hiệu suất làm việc</h3>
-                <div className="chart-placeholder">
-                  <p>📈 Biểu đồ doanh thu và số khách theo tuần</p>
-                  <div className="chart-bars">
-                    <div className="bar" style={{height: '60%'}}><span>T1</span></div>
-                    <div className="bar" style={{height: '75%'}}><span>T2</span></div>
-                    <div className="bar" style={{height: '85%'}}><span>T3</span></div>
-                    <div className="bar" style={{height: '70%'}}><span>T4</span></div>
+              <div className="stats-summary-card">
+                <h3>📈 Tổng quan hiệu suất</h3>
+                <div className="stats-summary-grid">
+                  <div className="stats-summary-item">
+                    <span className="stats-summary-label">Tổng doanh thu tích lũy</span>
+                    <span className="stats-summary-value">{monthlyStats.tongDoanhThu}</span>
+                  </div>
+                  <div className="stats-summary-item">
+                    <span className="stats-summary-label">Số lịch sử phục vụ</span>
+                    <span className="stats-summary-value">{completedServices.length} lượt</span>
+                  </div>
+                  <div className="stats-summary-item">
+                    <span className="stats-summary-label">Số đánh giá nhận được</span>
+                    <span className="stats-summary-value">{reviews.length} đánh giá</span>
+                  </div>
+                  <div className="stats-summary-item">
+                    <span className="stats-summary-label">Giờ làm ước tính (tháng này)</span>
+                    <span className="stats-summary-value">{monthlyStats.soGioLam}h</span>
                   </div>
                 </div>
               </div>
@@ -321,7 +408,7 @@ function Staff() {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Chi nhánh:</span>
-                    <span className="detail-value">{staffInfo.maChiNhanh}</span>
+                    <span className="detail-value">{staffInfo.tenChiNhanh || staffInfo.maChiNhanh}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Số điện thoại:</span>

@@ -963,3 +963,210 @@ body {
     font-size: 1.875rem;
   }
 }
+
+/* Review Button */
+.btn-review {
+  background: linear-gradient(135deg, #D4AF37 0%, #C4A030 100%);
+  color: #000;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-review:hover {
+  background: linear-gradient(135deg, #e6c043 0%, #D4AF37 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+}
+
+/* Review Modal */
+.review-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.review-modal {
+  background: #242426;
+  border: 1px solid #3f3f46;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.review-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid #3f3f46;
+}
+
+.review-modal-header h3 {
+  color: #D4AF37;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.review-close-btn {
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.review-close-btn:hover {
+  color: #ef4444;
+}
+
+.review-modal-body {
+  padding: 1.5rem;
+}
+
+.review-invoice-id {
+  color: #a1a1aa;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.review-invoice-id strong {
+  color: #D4AF37;
+}
+
+.review-field {
+  margin-bottom: 1.25rem;
+}
+
+.review-field label {
+  display: block;
+  color: #d4d4d8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.star-rating-input {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.star-btn {
+  font-size: 1.75rem;
+  cursor: pointer;
+  color: #3f3f46;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.star-btn.active {
+  color: #D4AF37;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+}
+
+.star-btn:hover {
+  transform: scale(1.2);
+}
+
+.review-textarea {
+  width: 100%;
+  background: #1a1a1c;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  color: #d4d4d8;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.review-textarea:focus {
+  border-color: #D4AF37;
+}
+
+.review-textarea::placeholder {
+  color: #52525b;
+}
+
+.review-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.5rem;
+  justify-content: flex-end;
+}
+
+.review-cancel-btn {
+  padding: 0.6rem 1.25rem;
+  background: #3f3f46;
+  color: #d4d4d8;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.review-cancel-btn:hover {
+  background: #52525b;
+}
+
+.review-submit-btn {
+  padding: 0.6rem 1.25rem;
+  background: linear-gradient(135deg, #D4AF37, #C4A030);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.review-submit-btn:hover {
+  background: linear-gradient(135deg, #e6c043, #D4AF37);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+}
+
+/* Booked time slot */
+.time-slot.booked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: #1a1a1c !important;
+  border-color: #27272a !important;
+  color: #52525b !important;
+  text-decoration: line-through;
+}
+
+.time-slot.booked:hover {
+  background: #1a1a1c !important;
+  color: #52525b !important;
+}

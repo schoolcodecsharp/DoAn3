@@ -7,5 +7,6 @@ public interface IHoaDonService
     Task<IEnumerable<dynamic>> GetAll(string? search, string? khachHang);
     Task<dynamic?> GetById(string id);
     Task<int> Create(HoaDonDto dto);
+    Task<int> UpdatePayment(string id, HoaDonDto dto);
     Task<IEnumerable<dynamic>> GetChiTiet(string id);
 }

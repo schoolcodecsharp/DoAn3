@@ -18,4 +18,7 @@ public class NhanVienService : INhanVienService
         _repo.Update(id, new { id, dto.MaChiNhanh, dto.HoTen, dto.GioiTinh, dto.NgaySinh, dto.SoDienThoai, dto.Email, dto.ChucVu, LuongCoBan = dto.LuongCoBan ?? 0, TrangThai = dto.TrangThai ?? true });
 
     public Task<int> Delete(string id) => _repo.Delete(id);
+
+    public Task<IEnumerable<dynamic>> GetServiceHistory(string maNhanVien) => _repo.GetServiceHistory(maNhanVien);
+    public Task<dynamic> GetStaffStats(string maNhanVien) => _repo.GetStaffStats(maNhanVien);
 }

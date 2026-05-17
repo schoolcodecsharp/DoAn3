@@ -48,6 +48,8 @@ const fetchApi = async (url: string, options?: RequestInit) => {
 export const authApi = {
   login: (email: string, password: string, accountType: string = 'user') =>
     fetchApi('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, accountType }) }),
+  loginByPhone: (soDienThoai: string, matKhau: string) =>
+    fetchApi('/auth/login-phone', { method: 'POST', body: JSON.stringify({ soDienThoai, matKhau }) }),
   register: (data: any) =>
     fetchApi('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   googleLogin: (idToken: string) =>
@@ -82,6 +84,8 @@ export const nhanVienApi = {
     fetchApi(`/nhanvien/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) =>
     fetchApi(`/nhanvien/${id}`, { method: 'DELETE' }),
+  getServiceHistory: (id: string) => fetchApi(`/nhanvien/${id}/lichsu`),
+  getStats: (id: string) => fetchApi(`/nhanvien/${id}/thongke`),
 };
 
 // ============================================================
@@ -153,6 +157,8 @@ export const hoaDonApi = {
   getById: (id: string) => fetchApi(`/hoadon/${id}`),
   create: (data: any) =>
     fetchApi('/hoadon', { method: 'POST', body: JSON.stringify(data) }),
+  updatePayment: (id: string, data: any) =>
+    fetchApi(`/hoadon/${id}/thanhtoan`, { method: 'PATCH', body: JSON.stringify(data) }),
   getChiTiet: (id: string) => fetchApi(`/hoadon/${id}/chitiet`),
 };
 
@@ -176,8 +182,22 @@ export const khuyenMaiApi = {
 // SAN PHAM API
 // ============================================================
 export const sanPhamApi = {
-  getAll: (search?: string) =>
-    fetchApi(`/sanpham${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+  getAll: (params?: { search?: string; chiNhanh?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.chiNhanh) query.set('chiNhanh', params.chiNhanh);
+    const qs = query.toString();
+    return fetchApi(`/sanpham${qs ? `?${qs}` : ''}`);
+  },
+  getById: (maSP: string, maCN: string) => fetchApi(`/sanpham/${maSP}/${maCN}`),
+  create: (data: any) =>
+    fetchApi('/sanpham', { method: 'POST', body: JSON.stringify(data) }),
+  update: (maSP: string, maCN: string, data: any) =>
+    fetchApi(`/sanpham/${maSP}/${maCN}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (maSP: string, maCN: string) =>
+    fetchApi(`/sanpham/${maSP}/${maCN}`, { method: 'DELETE' }),
+  getLowStock: (chiNhanh?: string) =>
+    fetchApi(`/sanpham/canh-bao-ton-kho${chiNhanh ? `?chiNhanh=${chiNhanh}` : ''}`),
 };
 
 // ============================================================
@@ -191,6 +211,13 @@ export const danhGiaApi = {
     const qs = query.toString();
     return fetchApi(`/danhgia${qs ? `?${qs}` : ''}`);
   },
+  getByHoaDon: async (maHoaDon: string) => {
+    try {
+      return await fetchApi(`/danhgia/${maHoaDon}`);
+    } catch {
+      return null;
+    }
+  },
   create: (data: any) =>
     fetchApi('/danhgia', { method: 'POST', body: JSON.stringify(data) }),
 };
@@ -203,4 +230,8 @@ export const dashboardApi = {
   getRevenueChart: (months: number = 6) => fetchApi(`/dashboard/revenue-chart?months=${months}`),
   getTopServices: (top: number = 5) => fetchApi(`/dashboard/top-services?top=${top}`),
   getRecentBookings: (limit: number = 10) => fetchApi(`/dashboard/recent-bookings?limit=${limit}`),
+  getTopStaff: (top: number = 5) => fetchApi(`/dashboard/top-staff?top=${top}`),
+  getAverageRatings: () => fetchApi('/dashboard/average-ratings'),
+  getCustomersByTier: () => fetchApi('/dashboard/customers-by-tier'),
+  getRevenueByBranch: () => fetchApi('/dashboard/revenue-by-branch'),
 };

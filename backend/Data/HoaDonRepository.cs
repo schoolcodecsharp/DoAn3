@@ -11,9 +11,13 @@ public class HoaDonRepository : IHoaDonRepository
     public async Task<IEnumerable<dynamic>> GetAll(string? search, string? khachHang)
     {
         using var db = new SqlConnection(_conn);
-        var sql = @"SELECT hd.*, cn.TenChiNhanh, kh.HoTen as TenKhachHang FROM HoaDon hd 
+        var sql = @"SELECT hd.*, cn.TenChiNhanh, kh.HoTen as TenKhachHang, 
+                    dl.MaNhanVien, nv.HoTen as TenNhanVien
+                    FROM HoaDon hd 
                     LEFT JOIN ChiNhanh cn ON hd.MaChiNhanh=cn.MaChiNhanh 
-                    LEFT JOIN KhachHang kh ON hd.SoDienThoai=kh.SoDienThoai";
+                    LEFT JOIN KhachHang kh ON hd.SoDienThoai=kh.SoDienThoai
+                    LEFT JOIN DatLich dl ON hd.MaDatLich=dl.MaDatLich
+                    LEFT JOIN NhanVien nv ON dl.MaNhanVien=nv.MaNhanVien";
         var conds = new List<string>();
         if (!string.IsNullOrEmpty(search)) conds.Add("(hd.MaHoaDon LIKE @s OR hd.SoDienThoai LIKE @s OR kh.HoTen LIKE @s)");
         if (!string.IsNullOrEmpty(khachHang)) conds.Add("hd.SoDienThoai = @khachHang");
@@ -26,9 +30,14 @@ public class HoaDonRepository : IHoaDonRepository
     {
         using var db = new SqlConnection(_conn);
         return await db.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT hd.*, cn.TenChiNhanh, kh.HoTen as TenKhachHang FROM HoaDon hd 
+            @"SELECT hd.*, cn.TenChiNhanh, kh.HoTen as TenKhachHang,
+              dl.MaNhanVien, nv.HoTen as TenNhanVien
+              FROM HoaDon hd 
               LEFT JOIN ChiNhanh cn ON hd.MaChiNhanh=cn.MaChiNhanh 
-              LEFT JOIN KhachHang kh ON hd.SoDienThoai=kh.SoDienThoai WHERE hd.MaHoaDon=@id", new { id });
+              LEFT JOIN KhachHang kh ON hd.SoDienThoai=kh.SoDienThoai
+              LEFT JOIN DatLich dl ON hd.MaDatLich=dl.MaDatLich
+              LEFT JOIN NhanVien nv ON dl.MaNhanVien=nv.MaNhanVien
+              WHERE hd.MaHoaDon=@id", new { id });
     }
 
     public async Task<int> Create(object param)
@@ -37,6 +46,25 @@ public class HoaDonRepository : IHoaDonRepository
         return await db.ExecuteAsync(
             @"INSERT INTO HoaDon (MaHoaDon,SoDienThoai,MaDatLich,MaChiNhanh,MaCode,TongTien,GiamGia,ThanhTien,DiemDuocCong,DiemDaDung,PhuongThucTT,GhiChu) 
               VALUES (@MaHoaDon,@SoDienThoai,@MaDatLich,@MaChiNhanh,@MaCode,@TongTien,@GiamGia,@ThanhTien,@DiemDuocCong,@DiemDaDung,@PhuongThucTT,@GhiChu)", param);
+    }
+
+    public async Task<int> UpdatePayment(string id, string? maCode, decimal giamGia, decimal thanhTien, string phuongThucTT, string? ghiChu)
+    {
+        using var db = new SqlConnection(_conn);
+        return await db.ExecuteAsync(
+            @"UPDATE HoaDon SET MaCode=@maCode, GiamGia=@giamGia, ThanhTien=@thanhTien, 
+              PhuongThucTT=@phuongThucTT, GhiChu=@ghiChu, ThoiGianTT=GETDATE() 
+              WHERE MaHoaDon=@id",
+            new { id, maCode, giamGia, thanhTien, phuongThucTT, ghiChu });
+    }
+
+    public async Task<int> CreateChiTiet(string maHoaDon, string maDichVu, string? maNhanVien, int soLuong, decimal donGia, decimal thanhTien)
+    {
+        using var db = new SqlConnection(_conn);
+        return await db.ExecuteAsync(
+            @"INSERT INTO ChiTietHoaDon (MaHoaDon,MaDichVu,MaNhanVien,SoLuong,DonGia,ThanhTien) 
+              VALUES (@maHoaDon,@maDichVu,@maNhanVien,@soLuong,@donGia,@thanhTien)",
+            new { maHoaDon, maDichVu, maNhanVien, soLuong, donGia, thanhTien });
     }
 
     public async Task<IEnumerable<dynamic>> GetChiTiet(string id)

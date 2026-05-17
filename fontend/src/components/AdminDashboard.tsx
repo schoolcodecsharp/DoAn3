@@ -119,7 +119,7 @@ function AdminDashboard({ dashStats, revenueData, topServices, bookings, service
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
@@ -130,7 +130,7 @@ function AdminDashboard({ dashStats, revenueData, topServices, bookings, service
                   { name: 'Đang phục vụ', value: 12 },
                   { name: 'Hoàn thành', value: 78 },
                   { name: 'Đã hủy', value: 6 },
-                ].map((entry, index) => (
+                ].map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={['#fbbf24', '#60a5fa', '#a78bfa', '#22c55e', '#f87171'][index]} />
                 ))}
               </Pie>

@@ -19,7 +19,7 @@ public class AuthService : IAuthService
         var user = await _repo.FindUser(phone, password);
         if (user != null) return (true, user, null);
 
-        return (false, null, "Sai so dien thoai hoac mat khau!");
+        return (false, null, "Sai số điện thoại hoặc mật khẩu!");
     }
 
     public async Task<(bool success, object? user, string? message)> LoginWithEmail(string email, string password, string accountType)
@@ -31,7 +31,15 @@ public class AuthService : IAuthService
         }
 
         // Login based on account type
-        if (accountType == "staff")
+        if (accountType == "admin")
+        {
+            // Check QuanLy
+            var admin = await _repo.FindAdminByEmail(email, password);
+            if (admin != null) return (true, admin, null);
+
+            return (false, null, "Sai email hoặc mật khẩu! Hoặc tài khoản không phải là quản lý.");
+        }
+        else if (accountType == "staff")
         {
             // Check Admin (QuanLy) first
             var admin = await _repo.FindAdminByEmail(email, password);
@@ -56,10 +64,10 @@ public class AuthService : IAuthService
     public async Task<(bool success, string message)> Register(string soDienThoai, string hoTen, string? gioiTinh, DateTime? ngaySinh, string? email, string matKhau)
     {
         var existing = await _repo.FindByPhone(soDienThoai);
-        if (existing != null) return (false, "So dien thoai da duoc dang ky!");
+        if (existing != null) return (false, "Số điện thoại đã được đăng ký!");
 
         await _repo.CreateCustomer(soDienThoai, hoTen, gioiTinh ?? "Nam", ngaySinh, email, matKhau);
-        return (true, "Dang ky thanh cong!");
+        return (true, "Đăng ký thành công!");
     }
 
     public async Task<(bool success, object? user, string? message)> GoogleLogin(string idToken)
@@ -87,11 +95,11 @@ public class AuthService : IAuthService
         }
         catch (InvalidJwtException)
         {
-            return (false, null, "Token Google khong hop le!");
+            return (false, null, "Token Google không hợp lệ!");
         }
         catch (Exception ex)
         {
-            return (false, null, $"Loi xac thuc Google: {ex.Message}");
+            return (false, null, $"Lỗi xác thực Google: {ex.Message}");
         }
     }
 }

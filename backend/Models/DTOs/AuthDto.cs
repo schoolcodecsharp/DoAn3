@@ -4,7 +4,13 @@ public class LoginRequest
 {
     public string Email { get; set; } = "";
     public string Password { get; set; } = "";
-    public string AccountType { get; set; } = "user"; // "user" hoặc "staff"
+    public string AccountType { get; set; } = "user"; // "user", "staff", hoặc "admin"
+}
+
+public class PhoneLoginRequest
+{
+    public string SoDienThoai { get; set; } = "";
+    public string MatKhau { get; set; } = "";
 }
 
 public class RegisterRequest
@@ -21,4 +27,3 @@ public class GoogleLoginRequest
 {
     public string IdToken { get; set; } = "";
 }
-

@@ -5,5 +5,6 @@ namespace backend.Services;
 public interface IDanhGiaService
 {
     Task<IEnumerable<dynamic>> GetAll(string? search, string? nhanVien);
+    Task<dynamic?> GetByHoaDon(string maHoaDon);
     Task<int> Create(DanhGiaDto dto);
 }

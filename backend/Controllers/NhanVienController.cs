@@ -29,4 +29,24 @@ public class NhanVienController : ControllerBase
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id) { await _service.Delete(id); return Ok(new { message = "Xoa thanh cong!" }); }
+
+    /// <summary>
+    /// Lấy lịch sử phục vụ của nhân viên (các hóa đơn liên quan qua DatLich)
+    /// </summary>
+    [HttpGet("{id}/lichsu")]
+    public async Task<IActionResult> GetServiceHistory(string id)
+    {
+        var result = await _service.GetServiceHistory(id);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Lấy thống kê tháng hiện tại của nhân viên
+    /// </summary>
+    [HttpGet("{id}/thongke")]
+    public async Task<IActionResult> GetStats(string id)
+    {
+        var result = await _service.GetStaffStats(id);
+        return Ok(result);
+    }
 }

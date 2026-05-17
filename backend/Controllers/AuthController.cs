@@ -21,12 +21,28 @@ public class AuthController : ControllerBase
         }
 
         // Validate account type
-        if (req.AccountType != "user" && req.AccountType != "staff")
+        if (req.AccountType != "user" && req.AccountType != "staff" && req.AccountType != "admin")
         {
             return BadRequest(new { success = false, message = "Loại tài khoản không hợp lệ" });
         }
 
         var (success, user, message) = await _service.LoginWithEmail(req.Email, req.Password, req.AccountType);
+        if (!success) return Unauthorized(new { success, message });
+        return Ok(new { success, user });
+    }
+
+    /// <summary>
+    /// Đăng nhập bằng SĐT + Mật khẩu (cho QuanLy hoặc NhanVien)
+    /// </summary>
+    [HttpPost("login-phone")]
+    public async Task<IActionResult> LoginByPhone([FromBody] PhoneLoginRequest req)
+    {
+        if (string.IsNullOrEmpty(req.SoDienThoai) || string.IsNullOrEmpty(req.MatKhau))
+        {
+            return BadRequest(new { success = false, message = "Vui lòng nhập số điện thoại và mật khẩu" });
+        }
+
+        var (success, user, message) = await _service.Login(req.SoDienThoai, req.MatKhau);
         if (!success) return Unauthorized(new { success, message });
         return Ok(new { success, user });
     }

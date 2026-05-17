@@ -39,8 +39,8 @@ public class DatLichRepository : IDatLichRepository
     {
         using var db = new SqlConnection(_conn);
         return await db.ExecuteAsync(
-            @"INSERT INTO DatLich (MaDatLich,SoDienThoai,MaChiNhanh,MaNhanVien,ThoiGianHen,ThoiGianKetThuc,NguonDatLich,GhiChu) 
-              VALUES (@MaDatLich,@SoDienThoai,@MaChiNhanh,@MaNhanVien,@ThoiGianHen,@ThoiGianKetThuc,@NguonDatLich,@GhiChu)", param);
+            @"INSERT INTO DatLich (MaDatLich,SoDienThoai,MaChiNhanh,MaNhanVien,ThoiGianHen,ThoiGianKetThuc,TrangThai,NguonDatLich,GhiChu) 
+              VALUES (@MaDatLich,@SoDienThoai,@MaChiNhanh,@MaNhanVien,@ThoiGianHen,@ThoiGianKetThuc,@TrangThai,@NguonDatLich,@GhiChu)", param);
     }
 
     public async Task<int> Update(string id, object param)

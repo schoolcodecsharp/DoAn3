@@ -245,11 +245,11 @@ function Home() {
                 <div className="city-icon">📍</div>
                 <div>
                   <h3>{city}</h3>
-                  <p className="salon-count">{cityBranches.length} chi nhánh</p>
+                  <p className="salon-count">{(cityBranches as any[]).length} chi nhánh</p>
                 </div>
               </div>
               <div className="salon-list">
-                {cityBranches.map((branch: any) => (
+                {(cityBranches as any[]).map((branch: any) => (
                   <div key={branch.maChiNhanh} className="salon-item">
                     <p className="salon-name">{branch.tenChiNhanh}</p>
                     <span className="salon-address">📍 {branch.diaChi}</span>
