@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import '../styles/User.css';
-import { datLichApi, dichVuApi, chiNhanhApi, nhanVienApi, hoaDonApi } from '../utils/api';
+import { datLichApi, dichVuApi, chiNhanhApi, nhanVienApi, hoaDonApi, danhGiaApi, khuyenMaiApi } from '../utils/api';
 
 function User() {
   const location = useLocation();
@@ -337,7 +337,7 @@ function User() {
                       <span className="section-badge">Yêu thích</span>
                     </div>
                     <div className="service-grid">
-                      {services.slice(0, 6).map((service) => (
+                      {services.map((service) => (
                         <div
                           key={service.maDichVu}
                           className={`service-card ${selectedService === service.maDichVu ? 'selected' : ''}`}
@@ -387,7 +387,12 @@ function User() {
                   <section className="booking-section">
                     <h2 className="section-title">2. CHỌN BARBER</h2>
                     <div className="barber-scroll">
-                      {staff.slice(0, 6).map((member) => (
+                      {staff
+                        .filter((member) => {
+                          const chucVu = (member.chucVu || member.ChucVu || '').toLowerCase();
+                          return chucVu.includes('thợ') || chucVu.includes('barber') || chucVu.includes('stylist');
+                        })
+                        .map((member) => (
                         <div
                           key={member.maNhanVien}
                           className={`barber-item ${selectedBarber === member.maNhanVien ? 'selected' : ''}`}
