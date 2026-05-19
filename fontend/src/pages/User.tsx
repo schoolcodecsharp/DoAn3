@@ -21,6 +21,7 @@ function User() {
   const [selectedBarber, setSelectedBarber] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [showAllServices, setShowAllServices] = useState(false); // State để toggle xem thêm dịch vụ
   // Review modal state
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewInvoice, setReviewInvoice] = useState<any>(null);
@@ -337,7 +338,7 @@ function User() {
                       <span className="section-badge">Yêu thích</span>
                     </div>
                     <div className="service-grid">
-                      {services.map((service) => (
+                      {(showAllServices ? services : services.slice(0, 6)).map((service) => (
                         <div
                           key={service.maDichVu}
                           className={`service-card ${selectedService === service.maDichVu ? 'selected' : ''}`}
@@ -381,6 +382,34 @@ function User() {
                         </div>
                       ))}
                     </div>
+                    {services.length > 6 && (
+                      <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                        <button 
+                          onClick={() => setShowAllServices(!showAllServices)}
+                          style={{
+                            padding: '0.75rem 2rem',
+                            background: 'transparent',
+                            border: '2px solid #D4AF37',
+                            borderRadius: '8px',
+                            color: '#D4AF37',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#D4AF37';
+                            e.currentTarget.style.color = '#000';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#D4AF37';
+                          }}
+                        >
+                          {showAllServices ? '← Thu gọn' : 'Xem thêm dịch vụ →'}
+                        </button>
+                      </div>
+                    )}
                   </section>
 
                   {/* Section 2: Barber Selection */}
