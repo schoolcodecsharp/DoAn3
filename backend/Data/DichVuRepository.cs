@@ -30,8 +30,8 @@ public class DichVuRepository : IDichVuRepository
     {
         using var db = new SqlConnection(_conn);
         return await db.ExecuteAsync(
-            @"INSERT INTO DichVu (MaDichVu,TenDichVu,DanhMuc,MoTa,Gia,GiaSauGiam,ThoiGianPhut,DiemThuong) 
-              VALUES (@MaDichVu,@TenDichVu,@DanhMuc,@MoTa,@Gia,@GiaSauGiam,@ThoiGianPhut,@DiemThuong)", param);
+            @"INSERT INTO DichVu (MaDichVu,TenDichVu,DanhMuc,MoTa,Gia,GiaSauGiam,ThoiGianPhut,DiemThuong,HinhAnh) 
+              VALUES (@MaDichVu,@TenDichVu,@DanhMuc,@MoTa,@Gia,@GiaSauGiam,@ThoiGianPhut,@DiemThuong,@HinhAnh)", param);
     }
 
     public async Task<int> Update(string id, object param)
@@ -39,7 +39,7 @@ public class DichVuRepository : IDichVuRepository
         using var db = new SqlConnection(_conn);
         return await db.ExecuteAsync(
             @"UPDATE DichVu SET TenDichVu=@TenDichVu,DanhMuc=@DanhMuc,MoTa=@MoTa,Gia=@Gia,GiaSauGiam=@GiaSauGiam,
-              ThoiGianPhut=@ThoiGianPhut,DiemThuong=@DiemThuong,TrangThai=@TrangThai WHERE MaDichVu=@id", param);
+              ThoiGianPhut=@ThoiGianPhut,DiemThuong=@DiemThuong,TrangThai=@TrangThai,HinhAnh=@HinhAnh WHERE MaDichVu=@id", param);
     }
 
     public async Task<int> Delete(string id)

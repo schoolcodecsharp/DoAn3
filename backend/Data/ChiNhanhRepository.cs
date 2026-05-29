@@ -28,8 +28,8 @@ public class ChiNhanhRepository : IChiNhanhRepository
     {
         using var db = new SqlConnection(_conn);
         return await db.ExecuteAsync(
-            @"INSERT INTO ChiNhanh (MaChiNhanh, TenChiNhanh, DiaChi, TinhThanh, SoDienThoai, Email, GioMoCua, GioDongCua) 
-              VALUES (@MaChiNhanh, @TenChiNhanh, @DiaChi, @TinhThanh, @SoDienThoai, @Email, @GioMoCua, @GioDongCua)", param);
+            @"INSERT INTO ChiNhanh (MaChiNhanh, TenChiNhanh, DiaChi, TinhThanh, SoDienThoai, Email, GioMoCua, GioDongCua, HinhAnh) 
+              VALUES (@MaChiNhanh, @TenChiNhanh, @DiaChi, @TinhThanh, @SoDienThoai, @Email, @GioMoCua, @GioDongCua, @HinhAnh)", param);
     }
 
     public async Task<int> Update(string id, object param)
@@ -37,7 +37,7 @@ public class ChiNhanhRepository : IChiNhanhRepository
         using var db = new SqlConnection(_conn);
         return await db.ExecuteAsync(
             @"UPDATE ChiNhanh SET TenChiNhanh=@TenChiNhanh, DiaChi=@DiaChi, TinhThanh=@TinhThanh, 
-              SoDienThoai=@SoDienThoai, Email=@Email, GioMoCua=@GioMoCua, GioDongCua=@GioDongCua, TrangThai=@TrangThai 
+              SoDienThoai=@SoDienThoai, Email=@Email, GioMoCua=@GioMoCua, GioDongCua=@GioDongCua, TrangThai=@TrangThai, HinhAnh=@HinhAnh 
               WHERE MaChiNhanh=@id", param);
     }
 

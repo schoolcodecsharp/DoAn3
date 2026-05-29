@@ -13,5 +13,5 @@ public interface IAuthRepository
     Task<dynamic?> FindUserByEmail(string email, string password);
     Task<int> CreateCustomer(string soDienThoai, string hoTen, string gioiTinh, DateTime? ngaySinh, string? email, string matKhau);
     Task<int> CreateCustomerFromGoogle(string email, string hoTen);
+    Task<int> UpdatePassword(string identifier, string newPassword, string tableName);
 }
-

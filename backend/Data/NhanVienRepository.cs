@@ -32,8 +32,8 @@ public class NhanVienRepository : INhanVienRepository
     {
         using var db = new SqlConnection(_conn);
         return await db.ExecuteAsync(
-            @"INSERT INTO NhanVien (MaNhanVien, MaChiNhanh, HoTen, GioiTinh, NgaySinh, SoDienThoai, Email, ChucVu, LuongCoBan, MatKhau) 
-              VALUES (@MaNhanVien, @MaChiNhanh, @HoTen, @GioiTinh, @NgaySinh, @SoDienThoai, @Email, @ChucVu, @LuongCoBan, @MatKhau)", param);
+            @"INSERT INTO NhanVien (MaNhanVien, MaChiNhanh, HoTen, GioiTinh, NgaySinh, SoDienThoai, Email, ChucVu, LuongCoBan, MatKhau, HinhAnh) 
+              VALUES (@MaNhanVien, @MaChiNhanh, @HoTen, @GioiTinh, @NgaySinh, @SoDienThoai, @Email, @ChucVu, @LuongCoBan, @MatKhau, @HinhAnh)", param);
     }
 
     public async Task<int> Update(string id, object param)
@@ -41,7 +41,7 @@ public class NhanVienRepository : INhanVienRepository
         using var db = new SqlConnection(_conn);
         return await db.ExecuteAsync(
             @"UPDATE NhanVien SET MaChiNhanh=@MaChiNhanh, HoTen=@HoTen, GioiTinh=@GioiTinh, NgaySinh=@NgaySinh,
-              SoDienThoai=@SoDienThoai, Email=@Email, ChucVu=@ChucVu, LuongCoBan=@LuongCoBan, TrangThai=@TrangThai 
+              SoDienThoai=@SoDienThoai, Email=@Email, ChucVu=@ChucVu, LuongCoBan=@LuongCoBan, TrangThai=@TrangThai, HinhAnh=@HinhAnh 
               WHERE MaNhanVien=@id", param);
     }
 

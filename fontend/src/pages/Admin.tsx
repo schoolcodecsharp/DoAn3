@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/Admin.css';
-import { dichVuApi, nhanVienApi, chiNhanhApi, khachHangApi, datLichApi, khuyenMaiApi } from '../utils/api';
+import { dichVuApi, nhanVienApi, chiNhanhApi, khachHangApi, datLichApi, khuyenMaiApi, sanPhamApi, dashboardApi } from '../utils/api';
+import AdminDashboard from '../components/AdminDashboard';
+import CustomPagination from '../components/CustomPagination';
+import usePagination from '../hooks/usePagination';
 
 function Admin() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -16,6 +19,12 @@ function Admin() {
   const [branches, setBranches] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [promotions, setPromotions] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<any[]>([]);
+  const [avgRatings, setAvgRatings] = useState<any>(null);
+  const [topStaff, setTopStaff] = useState<any[]>([]);
+  const [customerTiers, setCustomerTiers] = useState<any[]>([]);
+  const [revByBranch, setRevByBranch] = useState<any[]>([]);
 
   // Form data
   const [formData, setFormData] = useState<any>({});
@@ -28,6 +37,58 @@ function Admin() {
   const [searchBooking, setSearchBooking] = useState('');
   const [searchPromo, setSearchPromo] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
+
+  // Filtered data based on search
+  const filteredServices = services.filter(s => 
+    !searchService || 
+    (s.tenDichVu || s.TenDichVu || '').toLowerCase().includes(searchService.toLowerCase()) ||
+    (s.maDichVu || s.MaDichVu || '').toLowerCase().includes(searchService.toLowerCase())
+  );
+  
+  const filteredStaff = staff.filter(s => 
+    !searchStaff || 
+    (s.hoTen || '').toLowerCase().includes(searchStaff.toLowerCase()) ||
+    (s.maNhanVien || '').toLowerCase().includes(searchStaff.toLowerCase())
+  );
+  
+  const filteredCustomers = customers.filter(c => 
+    !searchCustomer || 
+    (c.hoTen || '').toLowerCase().includes(searchCustomer.toLowerCase()) ||
+    (c.soDienThoai || '').includes(searchCustomer)
+  );
+  
+  const filteredBranches = branches.filter(b => 
+    !searchBranch || 
+    (b.tenChiNhanh || '').toLowerCase().includes(searchBranch.toLowerCase()) ||
+    (b.maChiNhanh || '').toLowerCase().includes(searchBranch.toLowerCase())
+  );
+  
+  const filteredBookings = bookings.filter(b => 
+    !searchBooking || 
+    (b.maDatLich || '').toLowerCase().includes(searchBooking.toLowerCase()) ||
+    (b.soDienThoai || '').includes(searchBooking)
+  );
+  
+  const filteredPromotions = promotions.filter(p => 
+    !searchPromo || 
+    (p.tenKhuyenMai || '').toLowerCase().includes(searchPromo.toLowerCase()) ||
+    (p.maCode || '').toLowerCase().includes(searchPromo.toLowerCase())
+  );
+  
+  const filteredProducts = products.filter(p => 
+    !searchProduct || 
+    (p.tenSanPham || '').toLowerCase().includes(searchProduct.toLowerCase()) ||
+    (p.maSanPham || '').toLowerCase().includes(searchProduct.toLowerCase())
+  );
+
+  // Pagination hooks
+  const servicesPagination = usePagination({ data: filteredServices, initialPageSize: 10 });
+  const staffPagination = usePagination({ data: filteredStaff, initialPageSize: 10 });
+  const customersPagination = usePagination({ data: filteredCustomers, initialPageSize: 10 });
+  const branchesPagination = usePagination({ data: filteredBranches, initialPageSize: 10 });
+  const bookingsPagination = usePagination({ data: filteredBookings, initialPageSize: 10 });
+  const promotionsPagination = usePagination({ data: filteredPromotions, initialPageSize: 10 });
+  const productsPagination = usePagination({ data: filteredProducts, initialPageSize: 10 });
 
   // Load dữ liệu từ localStorage
   useEffect(() => {
@@ -48,6 +109,18 @@ function Admin() {
     ]);
     setServices(sv); setStaff(st); setCustomers(cus);
     setBranches(br); setBookings(bk); setPromotions(pr);
+
+    // Load products & reports data
+    const [pd, ls, ar, ts, ct, rb] = await Promise.all([
+      safeCall(() => sanPhamApi.getAll({})),
+      safeCall(() => sanPhamApi.getLowStock()),
+      safeCall(() => dashboardApi.getAverageRatings(), null),
+      safeCall(() => dashboardApi.getTopStaff()),
+      safeCall(() => dashboardApi.getCustomersByTier()),
+      safeCall(() => dashboardApi.getRevenueByBranch()),
+    ]);
+    setProducts(pd); setLowStockItems(ls); setAvgRatings(ar);
+    setTopStaff(ts); setCustomerTiers(ct); setRevByBranch(rb);
   };
 
   const openModal = (type: 'add' | 'edit', entity: string, data?: any) => {
@@ -66,36 +139,47 @@ function Admin() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert('Ảnh không được vượt quá 5MB!'); return; }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev: any) => ({ ...prev, hinhAnh: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
     if (currentEntity === 'service') {
       if (modalType === 'add') {
         const maDV = 'DV' + String(services.length + 1).padStart(3, '0');
-        await dichVuApi.create({ maDichVu: maDV, tenDichVu: formData.tenDichVu, danhMuc: formData.danhMuc, moTa: formData.moTa || '', gia: Number(formData.gia), thoiGianPhut: Number(formData.thoiGian), diemThuong: Number(formData.diemThuong || 0) });
+        await dichVuApi.create({ maDichVu: maDV, tenDichVu: formData.tenDichVu, danhMuc: formData.danhMuc, moTa: formData.moTa || '', gia: Number(formData.gia), thoiGianPhut: Number(formData.thoiGian), diemThuong: Number(formData.diemThuong || 0), hinhAnh: formData.hinhAnh || null });
         alert('Thêm dịch vụ thành công!');
       } else {
-        await dichVuApi.update(formData.maDichVu || formData.MaDichVu, { tenDichVu: formData.tenDichVu || formData.TenDichVu, danhMuc: formData.danhMuc || formData.DanhMuc, moTa: formData.moTa || formData.MoTa || '', gia: Number(formData.gia || formData.Gia), thoiGianPhut: Number(formData.thoiGian || formData.ThoiGianPhut), diemThuong: Number(formData.diemThuong || formData.DiemThuong || 0) });
+        await dichVuApi.update(formData.maDichVu || formData.MaDichVu, { tenDichVu: formData.tenDichVu || formData.TenDichVu, danhMuc: formData.danhMuc || formData.DanhMuc, moTa: formData.moTa || formData.MoTa || '', gia: Number(formData.gia || formData.Gia), thoiGianPhut: Number(formData.thoiGian || formData.ThoiGianPhut), diemThuong: Number(formData.diemThuong || formData.DiemThuong || 0), hinhAnh: formData.hinhAnh || formData.HinhAnh || null });
         alert('Cập nhật dịch vụ thành công!');
       }
       loadData();
     } else if (currentEntity === 'staff') {
       if (modalType === 'add') {
         const maNV = 'NV' + String(staff.length + 1).padStart(3, '0');
-        await nhanVienApi.create({ maNhanVien: maNV, maChiNhanh: formData.maChiNhanh, hoTen: formData.hoTen, gioiTinh: formData.gioiTinh || 'Nam', soDienThoai: formData.soDienThoai, email: formData.email || '', chucVu: formData.chucVu, luongCoBan: Number(formData.luong), matKhau: '123456' });
+        await nhanVienApi.create({ maNhanVien: maNV, maChiNhanh: formData.maChiNhanh, hoTen: formData.hoTen, gioiTinh: formData.gioiTinh || 'Nam', soDienThoai: formData.soDienThoai, email: formData.email || '', chucVu: formData.chucVu, luongCoBan: Number(formData.luong), matKhau: '123456', hinhAnh: formData.hinhAnh || null });
         alert('Thêm nhân viên thành công!');
       } else {
-        await nhanVienApi.update(formData.maNhanVien || formData.MaNhanVien, { maChiNhanh: formData.maChiNhanh || formData.MaChiNhanh, hoTen: formData.hoTen || formData.HoTen, gioiTinh: formData.gioiTinh || formData.GioiTinh, soDienThoai: formData.soDienThoai || formData.SoDienThoai, email: formData.email || formData.Email || '', chucVu: formData.chucVu || formData.ChucVu, luongCoBan: Number(formData.luong || formData.LuongCoBan), trangThai: formData.trangThai === 'Đang làm' ? 1 : 0 });
+        await nhanVienApi.update(formData.maNhanVien || formData.MaNhanVien, { maChiNhanh: formData.maChiNhanh || formData.MaChiNhanh, hoTen: formData.hoTen || formData.HoTen, gioiTinh: formData.gioiTinh || formData.GioiTinh, soDienThoai: formData.soDienThoai || formData.SoDienThoai, email: formData.email || formData.Email || '', chucVu: formData.chucVu || formData.ChucVu, luongCoBan: Number(formData.luong || formData.LuongCoBan), trangThai: formData.trangThai === 'Đang làm' ? 1 : 0, hinhAnh: formData.hinhAnh || formData.HinhAnh || null });
         alert('Cập nhật nhân viên thành công!');
       }
       loadData();
     } else if (currentEntity === 'branch') {
       if (modalType === 'add') {
         const maCN = 'CN' + String(branches.length + 1).padStart(3, '0');
-        await chiNhanhApi.create({ maChiNhanh: maCN, tenChiNhanh: formData.tenChiNhanh, diaChi: formData.diaChi, tinhThanh: formData.tinhThanh || 'Hà Nội', soDienThoai: formData.soDienThoai, email: formData.email || '', gioMoCua: formData.gioMoCua?.split(' - ')[0] || '08:00', gioDongCua: formData.gioMoCua?.split(' - ')[1] || '21:00' });
+        await chiNhanhApi.create({ maChiNhanh: maCN, tenChiNhanh: formData.tenChiNhanh, diaChi: formData.diaChi, tinhThanh: formData.tinhThanh || 'Hà Nội', soDienThoai: formData.soDienThoai, email: formData.email || '', gioMoCua: formData.gioMoCua?.split(' - ')[0] || '08:00', gioDongCua: formData.gioMoCua?.split(' - ')[1] || '21:00', hinhAnh: formData.hinhAnh || null });
         alert('Thêm chi nhánh thành công!');
       } else {
-        await chiNhanhApi.update(formData.maChiNhanh || formData.MaChiNhanh, { tenChiNhanh: formData.tenChiNhanh || formData.TenChiNhanh, diaChi: formData.diaChi || formData.DiaChi, tinhThanh: formData.tinhThanh || formData.TinhThanh || 'Hà Nội', soDienThoai: formData.soDienThoai || formData.SoDienThoai, email: formData.email || formData.Email || '', gioMoCua: (formData.gioMoCua || formData.GioMoCua || '08:00').split(' - ')[0], gioDongCua: (formData.gioMoCua || formData.GioDongCua || '21:00').split(' - ').pop(), trangThai: formData.trangThai === 'Hoạt động' ? 1 : 0 });
+        await chiNhanhApi.update(formData.maChiNhanh || formData.MaChiNhanh, { tenChiNhanh: formData.tenChiNhanh || formData.TenChiNhanh, diaChi: formData.diaChi || formData.DiaChi, tinhThanh: formData.tinhThanh || formData.TinhThanh || 'Hà Nội', soDienThoai: formData.soDienThoai || formData.SoDienThoai, email: formData.email || formData.Email || '', gioMoCua: (formData.gioMoCua || formData.GioMoCua || '08:00').split(' - ')[0], gioDongCua: (formData.gioMoCua || formData.GioDongCua || '21:00').split(' - ').pop(), trangThai: formData.trangThai === 'Hoạt động' ? 1 : 0, hinhAnh: formData.hinhAnh || formData.HinhAnh || null });
         alert('Cập nhật chi nhánh thành công!');
       }
       loadData();
@@ -164,17 +248,6 @@ function Admin() {
     } catch (err: any) { alert('Lỗi: ' + err.message); }
   };
 
-  const handleSearch = async (entity: string, keyword: string) => {
-    try {
-      if (entity === 'service') { setSearchService(keyword); setServices(await dichVuApi.getAll(keyword)); }
-      else if (entity === 'staff') { setSearchStaff(keyword); setStaff(await nhanVienApi.getAll(keyword)); }
-      else if (entity === 'customer') { setSearchCustomer(keyword); setCustomers(await khachHangApi.getAll(keyword)); }
-      else if (entity === 'branch') { setSearchBranch(keyword); setBranches(await chiNhanhApi.getAll(keyword)); }
-      else if (entity === 'booking') { setSearchBooking(keyword); setBookings(await datLichApi.getAll({ search: keyword })); }
-      else if (entity === 'promo') { setSearchPromo(keyword); setPromotions(await khuyenMaiApi.getAll(keyword)); }
-    } catch (err) { console.error(err); }
-  };
-
   return (
     <div className="admin-container">
       <div className="admin-main">
@@ -220,49 +293,34 @@ function Admin() {
 
           <div className="content-body">
             {activeTab === 'dashboard' && (
-              <div className="dashboard-section">
-                <div className="stats-grid">
-                  <div className="stat-card">
-                    <div className="stat-icon orange">📋</div>
-                    <div className="stat-info">
-                      <h3>Tổng Đặt Lịch</h3>
-                      <p className="stat-number">{bookings.length}</p>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-icon blue">✂️</div>
-                    <div className="stat-info">
-                      <h3>Dịch Vụ</h3>
-                      <p className="stat-number">{services.length}</p>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-icon green">👥</div>
-                    <div className="stat-info">
-                      <h3>Nhân Viên</h3>
-                      <p className="stat-number">{staff.length}</p>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-icon purple">👤</div>
-                    <div className="stat-info">
-                      <h3>Khách Hàng</h3>
-                      <p className="stat-number">{customers.length}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <AdminDashboard
+                dashStats={{
+                  totalOrders: bookings.length,
+                  totalServices: services.length,
+                  totalStaff: staff.length,
+                  totalRevenue: 45800000
+                }}
+                revenueData={[]}
+                topServices={[]}
+                bookings={bookings}
+                services={services}
+                staff={staff}
+                customers={customers}
+                branches={branches}
+                promotions={promotions}
+              />
             )}
 
             {activeTab === 'services' && (
               <div className="services-section" style={{background: 'black', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'service')}>+ Thêm dịch vụ mới</button>
-                  <input type="text" placeholder="🔍 Tìm kiếm dịch vụ..." value={searchService} onChange={e => handleSearch('service', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
+                  <input type="text" placeholder="🔍 Tìm kiếm dịch vụ..." value={searchService} onChange={e => setSearchService(e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th>Hình ảnh</th>
                       <th>Mã</th>
                       <th>Tên dịch vụ</th>
                       <th>Danh mục</th>
@@ -273,8 +331,9 @@ function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {services.map((service: any) => (
+                    {servicesPagination.paginatedData.map((service: any) => (
                       <tr key={service.MaDichVu || service.maDichVu}>
+                        <td>{(service.HinhAnh || service.hinhAnh) ? <img src={service.HinhAnh || service.hinhAnh} alt="" style={{width:40,height:40,objectFit:'cover',borderRadius:6,border:'1px solid #3f3f46'}} /> : <span style={{fontSize:'1.5rem'}}>✂️</span>}</td>
                         <td>{service.MaDichVu || service.maDichVu}</td>
                         <td>{service.TenDichVu || service.tenDichVu}</td>
                         <td>{service.DanhMuc || service.danhMuc}</td>
@@ -289,6 +348,12 @@ function Admin() {
                     ))}
                   </tbody>
                 </table>
+                <CustomPagination
+                  current={servicesPagination.currentPage}
+                  total={servicesPagination.totalItems}
+                  pageSize={servicesPagination.pageSize}
+                  onChange={servicesPagination.handlePageChange}
+                />
               </div>
             )}
 
@@ -296,11 +361,12 @@ function Admin() {
               <div className="staff-section" style={{background: 'black', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'staff')}>+ Thêm nhân viên</button>
-                  <input type="text" placeholder="🔍 Tìm kiếm nhân viên..." value={searchStaff} onChange={e => handleSearch('staff', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
+                  <input type="text" placeholder="🔍 Tìm kiếm nhân viên..." value={searchStaff} onChange={e => setSearchStaff(e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th>Ảnh</th>
                       <th>Mã</th>
                       <th>Họ tên</th>
                       <th>Chức vụ</th>
@@ -312,10 +378,11 @@ function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {staff.map((member) => {
+                    {staffPagination.paginatedData.map((member) => {
                       const branch = branches.find(b => b.maChiNhanh === member.maChiNhanh);
                       return (
                         <tr key={member.maNhanVien}>
+                          <td>{(member.HinhAnh || member.hinhAnh) ? <img src={member.HinhAnh || member.hinhAnh} alt="" style={{width:36,height:36,objectFit:'cover',borderRadius:'50%',border:'2px solid #D4AF37'}} /> : <span style={{display:'inline-flex',width:36,height:36,borderRadius:'50%',background:'#D4AF3730',alignItems:'center',justifyContent:'center',fontSize:'0.9rem',fontWeight:700,color:'#D4AF37'}}>{member.hoTen?.charAt(0)}</span>}</td>
                           <td>{member.maNhanVien}</td>
                           <td>{member.hoTen}</td>
                           <td>{member.chucVu}</td>
@@ -332,6 +399,12 @@ function Admin() {
                     })}
                   </tbody>
                 </table>
+                <CustomPagination
+                  current={staffPagination.currentPage}
+                  total={staffPagination.totalItems}
+                  pageSize={staffPagination.pageSize}
+                  onChange={staffPagination.handlePageChange}
+                />
               </div>
             )}
 
@@ -339,7 +412,7 @@ function Admin() {
               <div className="customers-section" style={{background: 'black', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'customer')}>+ Thêm khách hàng</button>
-                  <input type="text" placeholder="🔍 Tìm kiếm khách hàng..." value={searchCustomer} onChange={e => handleSearch('customer', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
+                  <input type="text" placeholder="🔍 Tìm kiếm khách hàng..." value={searchCustomer} onChange={e => setSearchCustomer(e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
                 <table className="data-table">
                   <thead>
@@ -354,7 +427,7 @@ function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {customers.map((customer: any) => {
+                    {customersPagination.paginatedData.map((customer: any) => {
                       const sdt = customer.soDienThoai;
                       const h = customer.hangThanhVien ?? 0;
                       const hangTV = ['Thường', 'Bạc', 'Vàng', 'Kim cương'][h];
@@ -375,6 +448,12 @@ function Admin() {
                     })}
                   </tbody>
                 </table>
+                <CustomPagination
+                  current={customersPagination.currentPage}
+                  total={customersPagination.totalItems}
+                  pageSize={customersPagination.pageSize}
+                  onChange={customersPagination.handlePageChange}
+                />
               </div>
             )}
 
@@ -382,11 +461,12 @@ function Admin() {
               <div className="branches-section" style={{background: 'black', padding: '2rem', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'branch')}>+ Thêm chi nhánh</button>
-                  <input type="text" placeholder="🔍 Tìm kiếm chi nhánh..." value={searchBranch} onChange={e => handleSearch('branch', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
+                  <input type="text" placeholder="🔍 Tìm kiếm chi nhánh..." value={searchBranch} onChange={e => setSearchBranch(e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #ddd',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th>Hình ảnh</th>
                       <th>Mã</th>
                       <th>Tên chi nhánh</th>
                       <th>Địa chỉ</th>
@@ -397,8 +477,9 @@ function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {branches.map((branch: any) => (
+                    {branchesPagination.paginatedData.map((branch: any) => (
                       <tr key={branch.MaChiNhanh || branch.maChiNhanh}>
+                        <td>{(branch.HinhAnh || branch.hinhAnh) ? <img src={branch.HinhAnh || branch.hinhAnh} alt="" style={{width:40,height:40,objectFit:'cover',borderRadius:6,border:'1px solid #3f3f46'}} /> : <span style={{fontSize:'1.5rem'}}>🏢</span>}</td>
                         <td>{branch.MaChiNhanh || branch.maChiNhanh}</td>
                         <td>{branch.TenChiNhanh || branch.tenChiNhanh}</td>
                         <td>{branch.DiaChi || branch.diaChi}</td>
@@ -413,14 +494,20 @@ function Admin() {
                     ))}
                   </tbody>
                 </table>
+                <CustomPagination
+                  current={branchesPagination.currentPage}
+                  total={branchesPagination.totalItems}
+                  pageSize={branchesPagination.pageSize}
+                  onChange={branchesPagination.handlePageChange}
+                />
               </div>
             )}
 
             {activeTab === 'bookings' && (
               <div style={{background: '#242426', padding: '2rem', borderRadius: '8px', border: '1px solid #3f3f46'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
-                  <h3 style={{color: '#D4AF37', fontSize: '1.1rem', margin:0}}>📅 Tất cả lịch hẹn ({bookings.length})</h3>
-                  <input type="text" placeholder="🔍 Tìm kiếm lịch hẹn..." value={searchBooking} onChange={e => handleSearch('booking', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #555',background:'#1a1a1c',color:'white',minWidth:'250px',fontSize:'0.9rem'}} />
+                  <h3 style={{color: '#D4AF37', fontSize: '1.1rem', margin:0}}>📅 Tất cả lịch hẹn ({bookingsPagination.totalItems})</h3>
+                  <input type="text" placeholder="🔍 Tìm kiếm lịch hẹn..." value={searchBooking} onChange={e => setSearchBooking(e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #555',background:'#1a1a1c',color:'white',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
                 <table className="data-table">
                   <thead>
@@ -436,7 +523,7 @@ function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {bookings.map((booking: any) => {
+                    {bookingsPagination.paginatedData.map((booking: any) => {
                       const trangThai = booking.TrangThai || booking.trangThai;
                       const statusMap: Record<string, {text: string; color: string}> = {
                         'ChoXacNhan': {text: 'Chờ xác nhận', color: '#fbbf24'},
@@ -475,6 +562,12 @@ function Admin() {
                     })}
                   </tbody>
                 </table>
+                <CustomPagination
+                  current={bookingsPagination.currentPage}
+                  total={bookingsPagination.totalItems}
+                  pageSize={bookingsPagination.pageSize}
+                  onChange={bookingsPagination.handlePageChange}
+                />
               </div>
             )}
 
@@ -482,7 +575,7 @@ function Admin() {
               <div style={{background: '#242426', padding: '2rem', borderRadius: '8px', border: '1px solid #3f3f46'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'promotion')}>+ Thêm khuyến mãi</button>
-                  <input type="text" placeholder="🔍 Tìm khuyến mãi..." value={searchPromo} onChange={e => handleSearch('promo', e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #555',background:'#1a1a1c',color:'white',minWidth:'250px',fontSize:'0.9rem'}} />
+                  <input type="text" placeholder="🔍 Tìm khuyến mãi..." value={searchPromo} onChange={e => setSearchPromo(e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #555',background:'#1a1a1c',color:'white',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
                 <table className="data-table">
                   <thead>
@@ -499,7 +592,7 @@ function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {promotions.map((promo) => (
+                    {promotionsPagination.paginatedData.map((promo) => (
                       <tr key={promo.maCode}>
                         <td style={{color: '#D4AF37', fontWeight: 700}}>{promo.maCode}</td>
                         <td>{promo.tenKhuyenMai}</td>
@@ -535,7 +628,7 @@ function Admin() {
               <div style={{background:'#242426',padding:'2rem',borderRadius:'8px',border:'1px solid #3f3f46'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',gap:'1rem',flexWrap:'wrap'}}>
                   <button className="btn-add" onClick={() => openModal('add', 'product')}>+ Thêm sản phẩm</button>
-                  <input type="text" placeholder="🔍 Tìm sản phẩm..." value={searchProduct} onChange={e => { setSearchProduct(e.target.value); sanPhamApi.getAll({search:e.target.value}).then(setProducts).catch(()=>{}); }} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #555',background:'#1a1a1c',color:'white',minWidth:'250px',fontSize:'0.9rem'}} />
+                  <input type="text" placeholder="🔍 Tìm sản phẩm..." value={searchProduct} onChange={e => setSearchProduct(e.target.value)} style={{padding:'0.6rem 1rem',borderRadius:'8px',border:'1px solid #555',background:'#1a1a1c',color:'white',minWidth:'250px',fontSize:'0.9rem'}} />
                 </div>
                 {lowStockItems.length > 0 && (
                   <div style={{background:'#7f1d1d20',border:'1px solid #f87171',borderRadius:'8px',padding:'1rem',marginBottom:'1rem'}}>
@@ -550,7 +643,7 @@ function Admin() {
                 <table className="data-table">
                   <thead><tr><th>Mã SP</th><th>Tên</th><th>Thương hiệu</th><th>Chi nhánh</th><th>Giá nhập</th><th>Giá bán</th><th>SL</th><th>Thao tác</th></tr></thead>
                   <tbody>
-                    {products.map((p:any) => (
+                    {productsPagination.paginatedData.map((p:any) => (
                       <tr key={p.maSanPham+(p.maChiNhanh||'')} style={p.soLuong<=p.soLuongToiThieu?{background:'#7f1d1d20'}:{}}>
                         <td>{p.maSanPham}</td>
                         <td>{p.tenSanPham}</td>
@@ -567,6 +660,12 @@ function Admin() {
                     ))}
                   </tbody>
                 </table>
+                <CustomPagination
+                  current={productsPagination.currentPage}
+                  total={productsPagination.totalItems}
+                  pageSize={productsPagination.pageSize}
+                  onChange={productsPagination.handlePageChange}
+                />
               </div>
             )}
 
@@ -662,6 +761,17 @@ function Admin() {
                     <label>Điểm thưởng</label>
                     <input type="number" name="diemThuong" value={formData.diemThuong || 0} onChange={handleInputChange} />
                   </div>
+                  <div className="form-group">
+                    <label>🖼️ Hình ảnh dịch vụ</label>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{padding:'0.4rem',background:'#18181b',border:'1px solid #3f3f46',borderRadius:6,color:'#a1a1aa',cursor:'pointer'}} />
+                    <p style={{fontSize:'0.75rem',color:'#71717a',margin:'0.3rem 0 0'}}>Chấp nhận: JPG, PNG, GIF. Tối đa 5MB.</p>
+                    {(formData.hinhAnh || formData.HinhAnh) && (
+                      <div style={{marginTop:'0.5rem',position:'relative',display:'inline-block'}}>
+                        <img src={formData.hinhAnh || formData.HinhAnh} alt="preview" style={{width:120,height:80,objectFit:'cover',borderRadius:8,border:'2px solid #D4AF37'}} />
+                        <button type="button" onClick={() => setFormData((p:any) => ({...p, hinhAnh: null, HinhAnh: null}))} style={{position:'absolute',top:-6,right:-6,width:20,height:20,borderRadius:'50%',border:'none',background:'#ef4444',color:'#fff',fontSize:'0.7rem',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -708,6 +818,17 @@ function Admin() {
                       <option value="Đã nghỉ">Đã nghỉ</option>
                     </select>
                   </div>
+                  <div className="form-group">
+                    <label>🖼️ Ảnh nhân viên</label>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{padding:'0.4rem',background:'#18181b',border:'1px solid #3f3f46',borderRadius:6,color:'#a1a1aa',cursor:'pointer'}} />
+                    <p style={{fontSize:'0.75rem',color:'#71717a',margin:'0.3rem 0 0'}}>Chấp nhận: JPG, PNG, GIF. Tối đa 5MB.</p>
+                    {(formData.hinhAnh || formData.HinhAnh) && (
+                      <div style={{marginTop:'0.5rem',position:'relative',display:'inline-block'}}>
+                        <img src={formData.hinhAnh || formData.HinhAnh} alt="preview" style={{width:80,height:80,objectFit:'cover',borderRadius:'50%',border:'2px solid #D4AF37'}} />
+                        <button type="button" onClick={() => setFormData((p:any) => ({...p, hinhAnh: null, HinhAnh: null}))} style={{position:'absolute',top:-4,right:-4,width:20,height:20,borderRadius:'50%',border:'none',background:'#ef4444',color:'#fff',fontSize:'0.7rem',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -737,6 +858,17 @@ function Admin() {
                       <option value="Hoạt động">Hoạt động</option>
                       <option value="Tạm đóng">Tạm đóng</option>
                     </select>
+                  </div>
+                  <div className="form-group">
+                    <label>🖼️ Hình ảnh chi nhánh</label>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{padding:'0.4rem',background:'#18181b',border:'1px solid #3f3f46',borderRadius:6,color:'#a1a1aa',cursor:'pointer'}} />
+                    <p style={{fontSize:'0.75rem',color:'#71717a',margin:'0.3rem 0 0'}}>Chấp nhận: JPG, PNG, GIF. Tối đa 5MB.</p>
+                    {(formData.hinhAnh || formData.HinhAnh) && (
+                      <div style={{marginTop:'0.5rem',position:'relative',display:'inline-block'}}>
+                        <img src={formData.hinhAnh || formData.HinhAnh} alt="preview" style={{width:120,height:80,objectFit:'cover',borderRadius:8,border:'2px solid #D4AF37'}} />
+                        <button type="button" onClick={() => setFormData((p:any) => ({...p, hinhAnh: null, HinhAnh: null}))} style={{position:'absolute',top:-6,right:-6,width:20,height:20,borderRadius:'50%',border:'none',background:'#ef4444',color:'#fff',fontSize:'0.7rem',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                      </div>
+                    )}
                   </div>
                 </>
               )}

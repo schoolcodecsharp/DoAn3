@@ -4,8 +4,13 @@ using backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add controllers
-builder.Services.AddControllers();
+// Add controllers with increased body size for base64 images
+builder.Services.AddControllers().AddJsonOptions(o => {
+    o.JsonSerializerOptions.DefaultBufferSize = 50 * 1024 * 1024;
+});
+builder.WebHost.ConfigureKestrel(options => {
+    options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB
+});
 
 // Register SQL connection string
 builder.Services.AddScoped<SqlConnection>(_ =>
@@ -22,6 +27,7 @@ builder.Services.AddScoped<IHoaDonRepository, HoaDonRepository>();
 builder.Services.AddScoped<IKhuyenMaiRepository, KhuyenMaiRepository>();
 builder.Services.AddScoped<ISanPhamRepository, SanPhamRepository>();
 builder.Services.AddScoped<IDanhGiaRepository, DanhGiaRepository>();
+builder.Services.AddScoped<IDoiThuongRepository, DoiThuongRepository>();
 
 // Register Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -35,6 +41,7 @@ builder.Services.AddScoped<IKhuyenMaiService, KhuyenMaiService>();
 builder.Services.AddScoped<ISanPhamService, SanPhamService>();
 builder.Services.AddScoped<IDanhGiaService, DanhGiaService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IDoiThuongService, DoiThuongService>();
 
 // CORS - allow frontend
 builder.Services.AddCors(options =>

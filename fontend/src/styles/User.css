@@ -850,7 +850,7 @@ body {
 
 .detail-row {
   display: flex;
-  justify-between;
+  justify-content: space-between;
   padding: 1rem 0;
   border-bottom: 1px solid #27272a;
 }

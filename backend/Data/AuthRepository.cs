@@ -135,5 +135,17 @@ public class AuthRepository : IAuthRepository
               VALUES (@phone, @hoTen, @email, N'Nam', 'google_oauth')",
             new { phone = phonePlaceholder, hoTen, email });
     }
-}
 
+    public async Task<int> UpdatePassword(string identifier, string newPassword, string tableName)
+    {
+        using var db = new SqlConnection(_conn);
+        
+        // Determine which column to use for WHERE clause
+        var whereColumn = identifier.Contains("@") ? "Email" : 
+                         (tableName == "KhachHang" ? "SoDienThoai" : "SoDienThoai");
+        
+        var sql = $"UPDATE {tableName} SET MatKhau = @newPassword WHERE {whereColumn} = @identifier";
+        
+        return await db.ExecuteAsync(sql, new { identifier, newPassword });
+    }
+}

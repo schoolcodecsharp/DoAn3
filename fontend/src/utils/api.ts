@@ -54,6 +54,8 @@ export const authApi = {
     fetchApi('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   googleLogin: (idToken: string) =>
     fetchApi('/auth/google', { method: 'POST', body: JSON.stringify({ idToken }) }),
+  changePassword: (identifier: string, oldPassword: string, newPassword: string, accountType: string = 'user') =>
+    fetchApi('/auth/change-password', { method: 'POST', body: JSON.stringify({ identifier, oldPassword, newPassword, accountType }) }),
 };
 
 // ============================================================
@@ -234,4 +236,16 @@ export const dashboardApi = {
   getAverageRatings: () => fetchApi('/dashboard/average-ratings'),
   getCustomersByTier: () => fetchApi('/dashboard/customers-by-tier'),
   getRevenueByBranch: () => fetchApi('/dashboard/revenue-by-branch'),
+};
+
+// ============================================================
+// ĐỔI THƯỞNG API
+// ============================================================
+export const doiThuongApi = {
+  getLichSu: (soDienThoai: string) => fetchApi(`/doithuong/${soDienThoai}`),
+  doiDiem: (soDienThoai: string, diemDoi: number, loaiDoiThuong: string) =>
+    fetchApi('/doithuong/doi-diem', { 
+      method: 'POST', 
+      body: JSON.stringify({ soDienThoai, diemDoi, loaiDoiThuong }) 
+    }),
 };

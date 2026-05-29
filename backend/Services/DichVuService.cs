@@ -12,10 +12,10 @@ public class DichVuService : IDichVuService
     public Task<dynamic?> GetById(string id) => _repo.GetById(id);
 
     public Task<int> Create(DichVuDto dto) =>
-        _repo.Create(new { dto.MaDichVu, dto.TenDichVu, dto.DanhMuc, dto.MoTa, dto.Gia, dto.GiaSauGiam, ThoiGianPhut = dto.ThoiGianPhut ?? 30, DiemThuong = dto.DiemThuong ?? 0 });
+        _repo.Create(new { dto.MaDichVu, dto.TenDichVu, dto.DanhMuc, dto.MoTa, dto.Gia, dto.GiaSauGiam, ThoiGianPhut = dto.ThoiGianPhut ?? 30, DiemThuong = dto.DiemThuong ?? 0, dto.HinhAnh });
 
     public Task<int> Update(string id, DichVuDto dto) =>
-        _repo.Update(id, new { id, dto.TenDichVu, dto.DanhMuc, dto.MoTa, dto.Gia, dto.GiaSauGiam, ThoiGianPhut = dto.ThoiGianPhut ?? 30, DiemThuong = dto.DiemThuong ?? 0, TrangThai = dto.TrangThai ?? true });
+        _repo.Update(id, new { id, dto.TenDichVu, dto.DanhMuc, dto.MoTa, dto.Gia, dto.GiaSauGiam, ThoiGianPhut = dto.ThoiGianPhut ?? 30, DiemThuong = dto.DiemThuong ?? 0, TrangThai = dto.TrangThai ?? true, dto.HinhAnh });
 
     public Task<int> Delete(string id) => _repo.Delete(id);
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import '../styles/Pos.css';
 import { datLichApi, dichVuApi, chiNhanhApi, nhanVienApi, hoaDonApi, khachHangApi, khuyenMaiApi } from '../utils/api';
 
@@ -26,6 +26,7 @@ function Pos() {
   const [promoError, setPromoError] = useState('');
   const [payMethod, setPayMethod] = useState('TienMat');
   const [invoiceDatLich, setInvoiceDatLich] = useState('');
+  const invoiceNote = ''; // Note field - can be added to UI later
 
   // Tra cứu KH
   const [searchPhone, setSearchPhone] = useState('');

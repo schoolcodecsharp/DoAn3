@@ -102,4 +102,54 @@ public class AuthService : IAuthService
             return (false, null, $"Lỗi xác thực Google: {ex.Message}");
         }
     }
+
+    public async Task<(bool success, string message)> ChangePassword(string identifier, string oldPassword, string newPassword, string accountType)
+    {
+        // Verify old password first
+        if (accountType == "admin")
+        {
+            var admin = identifier.Contains("@") 
+                ? await _repo.FindAdminByEmail(identifier, oldPassword)
+                : await _repo.FindAdmin(identifier, oldPassword);
+            
+            if (admin == null) return (false, "Mật khẩu cũ không đúng!");
+            
+            await _repo.UpdatePassword(identifier, newPassword, "QuanLy");
+            return (true, "Đổi mật khẩu thành công!");
+        }
+        else if (accountType == "staff")
+        {
+            // Try admin first
+            var admin = identifier.Contains("@") 
+                ? await _repo.FindAdminByEmail(identifier, oldPassword)
+                : await _repo.FindAdmin(identifier, oldPassword);
+            
+            if (admin != null)
+            {
+                await _repo.UpdatePassword(identifier, newPassword, "QuanLy");
+                return (true, "Đổi mật khẩu thành công!");
+            }
+
+            // Then try staff
+            var staff = identifier.Contains("@") 
+                ? await _repo.FindStaffByEmail(identifier, oldPassword)
+                : await _repo.FindStaff(identifier, oldPassword);
+            
+            if (staff == null) return (false, "Mật khẩu cũ không đúng!");
+            
+            await _repo.UpdatePassword(identifier, newPassword, "NhanVien");
+            return (true, "Đổi mật khẩu thành công!");
+        }
+        else // user
+        {
+            var user = identifier.Contains("@") 
+                ? await _repo.FindUserByEmail(identifier, oldPassword)
+                : await _repo.FindUser(identifier, oldPassword);
+            
+            if (user == null) return (false, "Mật khẩu cũ không đúng!");
+            
+            await _repo.UpdatePassword(identifier, newPassword, "KhachHang");
+            return (true, "Đổi mật khẩu thành công!");
+        }
+    }
 }

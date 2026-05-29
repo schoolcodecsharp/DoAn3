@@ -14,7 +14,7 @@ public class ChiNhanhService : IChiNhanhService
     public Task<int> Create(ChiNhanhDto dto) => _repo.Create(dto);
 
     public Task<int> Update(string id, ChiNhanhDto dto) =>
-        _repo.Update(id, new { id, dto.TenChiNhanh, dto.DiaChi, dto.TinhThanh, dto.SoDienThoai, dto.Email, GioMoCua = dto.GioMoCua ?? "08:00:00", GioDongCua = dto.GioDongCua ?? "21:00:00", TrangThai = dto.TrangThai ?? true });
+        _repo.Update(id, new { id, dto.TenChiNhanh, dto.DiaChi, dto.TinhThanh, dto.SoDienThoai, dto.Email, GioMoCua = dto.GioMoCua ?? "08:00:00", GioDongCua = dto.GioDongCua ?? "21:00:00", TrangThai = dto.TrangThai ?? true, dto.HinhAnh });
 
     public Task<int> Delete(string id) => _repo.Delete(id);
 }

@@ -27,3 +27,11 @@ public class GoogleLoginRequest
 {
     public string IdToken { get; set; } = "";
 }
+
+public class ChangePasswordRequest
+{
+    public string Identifier { get; set; } = ""; // Email hoặc SĐT
+    public string OldPassword { get; set; } = "";
+    public string NewPassword { get; set; } = "";
+    public string AccountType { get; set; } = "user"; // "user", "staff", hoặc "admin"
+}

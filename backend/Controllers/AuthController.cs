@@ -62,4 +62,25 @@ public class AuthController : ControllerBase
         if (!success) return Unauthorized(new { success, message });
         return Ok(new { success, user });
     }
+
+    /// <summary>
+    /// Đổi mật khẩu
+    /// </summary>
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+    {
+        if (string.IsNullOrEmpty(req.Identifier) || string.IsNullOrEmpty(req.OldPassword) || string.IsNullOrEmpty(req.NewPassword))
+        {
+            return BadRequest(new { success = false, message = "Vui lòng nhập đầy đủ thông tin" });
+        }
+
+        if (req.NewPassword.Length < 6)
+        {
+            return BadRequest(new { success = false, message = "Mật khẩu mới phải có ít nhất 6 ký tự" });
+        }
+
+        var (success, message) = await _service.ChangePassword(req.Identifier, req.OldPassword, req.NewPassword, req.AccountType);
+        if (!success) return BadRequest(new { success, message });
+        return Ok(new { success, message });
+    }
 }
