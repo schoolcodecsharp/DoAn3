@@ -40,7 +40,7 @@ function Login() {
   }, [navigate]);
 
   useEffect(() => {
-    // Initialize Google Identity Services
+    // Khởi tạo Google Identity Services
     const initGoogle = () => {
       if (window.google?.accounts?.id) {
         window.google.accounts.id.initialize({
@@ -61,7 +61,7 @@ function Login() {
       }
     };
 
-    // Wait for GSI script to load
+    // Đợi GSI script tải xong
     if (window.google?.accounts?.id) {
       initGoogle();
     } else {
@@ -71,12 +71,12 @@ function Login() {
           clearInterval(checkInterval);
         }
       }, 100);
-      // Clean up after 5 seconds
+      // Dọn dẹp sau 5 giây
       setTimeout(() => clearInterval(checkInterval), 5000);
     }
   }, [handleGoogleResponse]);
 
-  // Validate email format
+  // Kiểm tra định dạng email
   const isValidEmail = (email: string) => {
     return email.includes('@');
   };
@@ -86,7 +86,7 @@ function Login() {
     setLoading(true);
     setError('');
 
-    // Validate email
+    // Kiểm tra email
     if (!isValidEmail(formData.email)) {
       setError('Vui lòng nhập địa chỉ email hợp lệ (có chứa @)');
       setLoading(false);

@@ -24,16 +24,16 @@ public class AuthService : IAuthService
 
     public async Task<(bool success, object? user, string? message)> LoginWithEmail(string email, string password, string accountType)
     {
-        // Check if email is valid (contains @)
+        // Kiểm tra email có hợp lệ không (chứa @)
         if (!email.Contains("@"))
         {
             return (false, null, "Vui lòng nhập địa chỉ email hợp lệ!");
         }
 
-        // Login based on account type
+        // Đăng nhập dựa trên loại tài khoản
         if (accountType == "admin")
         {
-            // Check QuanLy
+            // Kiểm tra QuanLy
             var admin = await _repo.FindAdminByEmail(email, password);
             if (admin != null) return (true, admin, null);
 
@@ -41,11 +41,11 @@ public class AuthService : IAuthService
         }
         else if (accountType == "staff")
         {
-            // Check Admin (QuanLy) first
+            // Kiểm tra Admin (QuanLy) trước
             var admin = await _repo.FindAdminByEmail(email, password);
             if (admin != null) return (true, admin, null);
 
-            // Then check Staff (NhanVien)
+            // Sau đó kiểm tra Staff (NhanVien)
             var staff = await _repo.FindStaffByEmail(email, password);
             if (staff != null) return (true, staff, null);
 
@@ -53,7 +53,7 @@ public class AuthService : IAuthService
         }
         else // accountType == "user"
         {
-            // Check Customer (KhachHang)
+            // Kiểm tra Customer (KhachHang)
             var user = await _repo.FindUserByEmail(email, password);
             if (user != null) return (true, user, null);
 

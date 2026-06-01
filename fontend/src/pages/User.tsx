@@ -23,16 +23,16 @@ function User() {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [showAllServices, setShowAllServices] = useState(false);
   
-  // UI states
+  // Trạng thái UI
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   
-  // Refs for click outside
+  // Refs cho click outside
   const notificationRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  // Review modal state
+  // Trạng thái modal đánh giá
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewInvoice, setReviewInvoice] = useState<any>(null);
   const [reviewStarDV, setReviewStarDV] = useState(5);
@@ -41,7 +41,7 @@ function User() {
   const [reviewText, setReviewText] = useState('');
   const [reviewedInvoices, setReviewedInvoices] = useState<Set<string>>(new Set());
 
-  // Payment modal state
+  // Trạng thái modal thanh toán
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentInvoice, setPaymentInvoice] = useState<any>(null);
   const [payPromoCode, setPayPromoCode] = useState('');
@@ -50,12 +50,12 @@ function User() {
   const [payMethod, setPayMethod] = useState('TienMat');
   const [payLoading, setPayLoading] = useState(false);
 
-  // Rewards state
+  // Trạng thái đổi thưởng
   const [rewardsHistory, setRewardsHistory] = useState<any[]>([]);
   const [redeemLoading, setRedeemLoading] = useState(false);
   const [rewardsTab, setRewardsTab] = useState<'redeem' | 'history'>('redeem');
 
-  // Profile edit state
+  // Trạng thái chỉnh sửa thông tin
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     hoTen: '',
@@ -65,7 +65,7 @@ function User() {
   });
   const [profileSaving, setProfileSaving] = useState(false);
 
-  // Change password state
+  // Trạng thái đổi mật khẩu
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
@@ -84,7 +84,7 @@ function User() {
     }
   }, [location.state]);
 
-  // Click outside to close dropdowns
+  // Click bên ngoài để đóng dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
@@ -114,7 +114,7 @@ function User() {
         setBookings(await datLichApi.getAll({ khachHang: sdt }));
         const inv = await hoaDonApi.getAll({ khachHang: sdt });
         setInvoices(inv);
-        // Check which invoices already have reviews
+        // Kiểm tra hóa đơn nào đã có đánh giá
         const reviewed = new Set<string>();
         for (const invoice of inv) {
           const maHD = invoice.maHoaDon || invoice.MaHoaDon;
@@ -123,7 +123,7 @@ function User() {
         }
         setReviewedInvoices(reviewed);
         
-        // Load rewards history
+        // Tải lịch sử đổi thưởng
         try {
           const rewards = await doiThuongApi.getLichSu(sdt);
           setRewardsHistory(rewards);
@@ -184,7 +184,7 @@ function User() {
     } catch (err: any) { alert('Lỗi: ' + err.message); }
   };
 
-  // Payment modal handlers
+  // Xử lý mở modal thanh toán
   const handleOpenPayment = (invoice: any) => {
     setPaymentInvoice(invoice);
     setPayPromoCode('');
@@ -250,7 +250,7 @@ function User() {
     setPayLoading(false);
   };
 
-  // Redeem reward handler
+  // Xử lý đổi thưởng
   const handleRedeemReward = async (reward: { name: string; points: number; type: string }) => {
     if (!currentUser) { alert('Vui lòng đăng nhập!'); return; }
     const sdt = currentUser.SoDienThoai || currentUser.soDienThoai;
@@ -272,10 +272,10 @@ function User() {
       const updatedUser = { ...currentUser, diemTichLuy: result.diemConLai ?? ((currentUser.diemTichLuy || 0) - reward.points) };
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
       
-      // Show success message
+      // Hiển thị thông báo thành công
       alert(`✅ Đổi thưởng thành công! Bạn nhận được: ${result.maCode || 'mã giảm giá'}`);
       
-      // Reload lịch sử đổi thưởng
+      // Tải lại lịch sử đổi thưởng
       try {
         const rewards = await doiThuongApi.getLichSu(sdt);
         setRewardsHistory(rewards);
@@ -283,7 +283,7 @@ function User() {
         console.error('Error reloading rewards:', err);
       }
       
-      // Force reload page data (điểm mới)
+      // Tải lại dữ liệu trang (điểm mới)
       window.location.reload();
     } catch (err: any) {
       alert('Lỗi đổi thưởng: ' + (err.message || 'Vui lòng thử lại'));
@@ -291,7 +291,7 @@ function User() {
     setRedeemLoading(false);
   };
 
-  // Profile edit handlers
+  // Xử lý chỉnh sửa thông tin
   const handleEditProfile = () => {
     setProfileForm({
       hoTen: currentUser?.hoTen || currentUser?.HoTen || '',
@@ -334,7 +334,7 @@ function User() {
         trangThai: currentUser.trangThai
       });
 
-      // Update localStorage
+      // Cập nhật localStorage
       const updatedUser = { ...currentUser, hoTen: profileForm.hoTen.trim(), email: profileForm.email.trim(), gioiTinh: profileForm.gioiTinh, ngaySinh: profileForm.ngaySinh };
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
       
@@ -642,7 +642,7 @@ function User() {
       {/* Sidebar Navigation */}
       <aside className="sidebar-nav">
         <div className="sidebar-brand">
-          <div className="brand-title">MANAGEMENT</div>
+          <div className="brand-title">Client</div>
           <div className="brand-subtitle">Premium Suite</div>
         </div>
         <nav className="nav-menu">

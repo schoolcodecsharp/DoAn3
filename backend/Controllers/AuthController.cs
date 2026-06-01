@@ -14,13 +14,13 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
-        // Validate email format (must contain @)
+        // Kiểm tra định dạng email (phải chứa @)
         if (string.IsNullOrEmpty(req.Email) || !req.Email.Contains("@"))
         {
             return BadRequest(new { success = false, message = "Vui lòng nhập địa chỉ email hợp lệ" });
         }
 
-        // Validate account type
+        // Kiểm tra loại tài khoản
         if (req.AccountType != "user" && req.AccountType != "staff" && req.AccountType != "admin")
         {
             return BadRequest(new { success = false, message = "Loại tài khoản không hợp lệ" });

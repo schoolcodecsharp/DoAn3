@@ -4,7 +4,7 @@
 
 const API_BASE = 'http://localhost:5000/api';
 
-// Convert PascalCase keys from C# backend to camelCase for frontend
+// Chuyển đổi PascalCase keys từ C# backend sang camelCase cho frontend
 const toCamelCase = (str: string): string =>
   str.charAt(0).toLowerCase() + str.slice(1);
 
@@ -19,7 +19,7 @@ const normalizeKeys = (obj: any): any => {
   return obj;
 };
 
-// Generic fetch wrapper
+// Hàm fetch chung
 const fetchApi = async (url: string, options?: RequestInit) => {
   try {
     const res = await fetch(`${API_BASE}${url}`, {
@@ -31,7 +31,7 @@ const fetchApi = async (url: string, options?: RequestInit) => {
     let data;
     try { data = JSON.parse(text); } catch { return []; }
     if (!res.ok) throw new Error(data.message || 'Lỗi server');
-    // Unwrap { success, data } pattern used by some endpoints
+    // Giải nén pattern { success, data } được sử dụng bởi một số endpoints
     if (data && typeof data === 'object' && !Array.isArray(data) && 'data' in data) {
       return normalizeKeys(data.data);
     }

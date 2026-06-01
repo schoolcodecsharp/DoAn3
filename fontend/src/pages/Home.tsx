@@ -30,7 +30,7 @@ function Home() {
     load();
   }, []);
 
-  // Auto-slide every 5 seconds
+  // Tự động chuyển slide mỗi 5 giây
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroImages.length);
@@ -45,7 +45,7 @@ function Home() {
     return acc;
   }, {} as Record<string, any[]>);
 
-  // Fallback images for services that don't have images from DB
+  // Ảnh dự phòng cho các dịch vụ không có ảnh từ DB
   const fallbackServiceImages = [
     'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400&h=300&fit=crop',
     'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&h=300&fit=crop',
@@ -199,7 +199,7 @@ function Home() {
                     alt={service.tenDichVu}
                     className="service-img"
                     onError={(e) => {
-                      // Fallback if image fails to load
+                      // Dự phòng nếu ảnh không tải được
                       e.currentTarget.style.display = 'none';
                       if (e.currentTarget.nextElementSibling) {
                         (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
